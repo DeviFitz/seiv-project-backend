@@ -1,6 +1,5 @@
 const db = require("../models");
 const User = db.user;
-const Op = db.Sequelize.Op;
 
 // Create and Save a new User
 exports.create = (req, res) => {
@@ -37,9 +36,8 @@ exports.create = (req, res) => {
 // Retrieve all People from the database.
 exports.findAll = (req, res) => {
   const id = req.query.id;
-  var condition = id ? { id: { [Op.like]: `%${id}%` } } : null;
 
-  User.findAll({ where: condition })
+  User.findAll({ where: {} })
     .then((data) => {
       res.send(data);
     })
@@ -143,23 +141,6 @@ exports.delete = (req, res) => {
     .catch((err) => {
       res.status(500).send({
         message: "Could not delete User with id=" + id,
-      });
-    });
-};
-
-// Delete all People from the database.
-exports.deleteAll = (req, res) => {
-  User.destroy({
-    where: {},
-    truncate: false,
-  })
-    .then((nums) => {
-      res.send({ message: `${nums} People were deleted successfully!` });
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while removing all people.",
       });
     });
 };

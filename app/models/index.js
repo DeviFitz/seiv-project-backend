@@ -82,7 +82,7 @@ db.asset.belongsTo(
   db.person,
   { 
     as: "borrower",
-    foreignKey: { allowNull: false },
+    foreignKey: { allowNull: true },
     onDelete: "CASCADE",
     hooks: true 
   }

@@ -4,7 +4,7 @@ const FieldListOption = db.fieldListOption;
 // Create and Save a new FieldListOption
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.value || !req.body.listId) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,8 @@ exports.create = (req, res) => {
   // Create an FieldListOption
   const fieldListOption = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    value: req.body.value,
+    listId: req.body.listId,
   };
 
   // Save FieldListOption in the database

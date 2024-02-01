@@ -4,7 +4,7 @@ const Asset = db.asset;
 // Create and Save a new Asset
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.acquisitionDate || !req.body.acquisitionPrice || !req.body.condition || !req.body.typeId) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,14 @@ exports.create = (req, res) => {
   // Create an Asset
   const asset = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    acquisitionDate: req.body.acquisitionDate,
+    acquisitionPrice: req.body.acquisitionPrice,
+    dueDate: req.body.dueDate,
+    condition: req.body.condition,
+    templateId: req.body.templateId,
+    typeId: req.body.typeId,
+    borrowerId: req.body.borrowerId,
+    locationId: req.body.locationId,
   };
 
   // Save Asset in the database

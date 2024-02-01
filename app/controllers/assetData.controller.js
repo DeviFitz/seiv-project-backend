@@ -4,7 +4,7 @@ const AssetData = db.assetData;
 // Create and Save a new AssetData
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.assetId || !req.body.fieldId) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,9 @@ exports.create = (req, res) => {
   // Create an AssetData
   const assetData = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    value: req.body.value,
+    assetId: req.body.assetId,
+    fieldId: req.body.fieldId,
   };
 
   // Save AssetData in the database

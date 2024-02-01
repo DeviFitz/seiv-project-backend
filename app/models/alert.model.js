@@ -17,4 +17,8 @@ module.exports = (sequelize, Sequelize) => {
         allowNull: false,
       }
     });
+
+    // Foreign Keys:
+    // - "typeId (non-null)"
+    // - "assetId (non-null)"
 };

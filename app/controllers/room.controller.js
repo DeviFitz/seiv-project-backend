@@ -4,7 +4,7 @@ const Room = db.room;
 // Create and Save a new Room
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.name || !req.body.buildingId) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,8 @@ exports.create = (req, res) => {
   // Create a Room
   const room = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    name: req.body.name,
+    buildingId: req.body.buildingId,
   };
 
   // Save Room in the database

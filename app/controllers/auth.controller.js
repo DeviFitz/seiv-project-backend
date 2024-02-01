@@ -209,14 +209,13 @@ exports.login = async (req, res) => {
 };
 
 exports.authorize = async (req, res) => {
-  console.log("authorize client");
+  // Authorize client
   const oauth2Client = new google.auth.OAuth2(
     process.env.CLIENT_ID,
     process.env.CLIENT_SECRET,
     "postmessage"
   );
 
-  console.log("authorize token");
   // Get access and refresh tokens (if access_type is offline)
   let { tokens } = await oauth2Client.getToken(req.body.code);
   oauth2Client.setCredentials(tokens);
@@ -270,7 +269,7 @@ exports.authorize = async (req, res) => {
 };
 
 exports.logout = async (req, res) => {
-  console.log(req.body);
+  //console.log(req.body);
   if (req.body === null) {
     res.send({
       message: "User has already been successfully logged out!",

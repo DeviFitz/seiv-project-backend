@@ -23,4 +23,10 @@ module.exports = (sequelize, Sequelize) => {
         defaultValue: "Good"
       }
     });
+
+    // Foreign keys:
+    // - templateId (nullable)
+    // - typeId (non-nullable)
+    // - borrowerId (nullable)
+    // - locationId (nullable)
 };

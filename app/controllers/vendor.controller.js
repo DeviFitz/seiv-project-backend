@@ -4,7 +4,7 @@ const Vendor = db.vendor;
 // Create and Save a new Vendor
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.name) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,9 @@ exports.create = (req, res) => {
   // Create a Vendor
   const vendor = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
+    name: req.body.name,
     email: req.body.email,
+    phoneNo: req.body.phoneNo,
   };
 
   // Save Vendor in the database

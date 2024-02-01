@@ -9,4 +9,8 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.DATE,
     },
   });
+
+  // Foreign keys:
+  // - groupId (nullable)
+  // - personId (non-nullable)
 };

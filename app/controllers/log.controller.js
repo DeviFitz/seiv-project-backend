@@ -4,7 +4,7 @@ const Log = db.log;
 // Create and Save a new Log
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.date || !req.body.assetId || !req.body.authorId) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,16 @@ exports.create = (req, res) => {
   // Create an Log
   const log = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    date: req.body.date,
+    description: req.body.description,
+    type: req.body.type,
+    condition: req.body.condition,
+    circulationStatus: req.body.circulationStatus,
+    maintenanceType: req.body.maintenanceType,
+    assetId: req.body.assetId,
+    authorId: req.body.authorId,
+    personId: req.body.personId,
+    vendorId: req.body.vendorId,
   };
 
   // Save Log in the database

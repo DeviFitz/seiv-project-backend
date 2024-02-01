@@ -4,7 +4,7 @@ const Group = db.group;
 // Create and Save a new Group
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.name) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,8 @@ exports.create = (req, res) => {
   // Create an Group
   const group = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    name: req.body.name,
+    priority: req.body.priority,
   };
 
   // Save Group in the database

@@ -7,6 +7,11 @@ module.exports = (sequelize, Sequelize) => {
       },
       value: {
         type: Sequelize.STRING(500),
+        allowNull: false,
       },
     });
+
+    // Foreign keys:
+    // - templateId (non-nullable)
+    // - fieldId (non-nullable)
 };

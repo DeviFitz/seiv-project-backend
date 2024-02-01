@@ -4,7 +4,8 @@ const Alert = db.alert;
 // Create and Save a new Alert
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.date || !req.body.status || !req.body.typeId || !req.body.assetId)
+  {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +15,11 @@ exports.create = (req, res) => {
   // Create an Alert
   const alert = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    date: req.body.date,
+    description: req.body.description,
+    status: req.body.status,
+    typeId: req.body.typeId,
+    assetId: req.body.assetId,
   };
 
   // Save Alert in the database
@@ -33,8 +36,6 @@ exports.create = (req, res) => {
 
 // Retrieve all Alerts from the database.
 exports.findAll = (req, res) => {
-  const id = req.query.id;
-
   Alert.findAll({ where: {} })
     .then((data) => {
       res.send(data);

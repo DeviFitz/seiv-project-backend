@@ -4,7 +4,7 @@ const AssetType = db.assetType;
 // Create and Save a new AssetType
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.name || !req.body.categoryId) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,9 @@ exports.create = (req, res) => {
   // Create an AssetType
   const assetType = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    name: req.body.name,
+    circulatable: req.body.circulatable,
+    categoryId: req.body.categoryId,
   };
 
   // Save AssetType in the database

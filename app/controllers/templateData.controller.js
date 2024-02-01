@@ -4,7 +4,7 @@ const TemplateData = db.templateData;
 // Create and Save a new TemplateData
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.value || !req.body.templateId || !req.body.fieldId) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,9 @@ exports.create = (req, res) => {
   // Create a TemplateData
   const templateData = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    value: req.body.value,
+    templateId: req.body.templateId,
+    fieldId: req.body.fieldId,
   };
 
   // Save TemplateData in the database

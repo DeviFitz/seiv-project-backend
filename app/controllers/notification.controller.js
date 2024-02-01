@@ -4,7 +4,7 @@ const Notification = db.notification;
 // Create and Save a new Notification
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.message || !req.body.userId) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,8 @@ exports.create = (req, res) => {
   // Create a Notification
   const notification = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    message: req.body.message,
+    userId: req.body.userId,
   };
 
   // Save Notification in the database

@@ -4,7 +4,7 @@ const AssetTemplate = db.assetTemplate;
 // Create and Save a new AssetTemplate
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.name || !req.body.assetTypeId) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,8 @@ exports.create = (req, res) => {
   // Create an AssetTemplate
   const assetTemplate = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    name: req.body.name,
+    assetTypeId: req.body.assetTypeId,
   };
 
   // Save AssetTemplate in the database

@@ -4,7 +4,7 @@ const Building = db.building;
 // Create and Save a new Building
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.abbreviation || !req.body.assetId) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,8 @@ exports.create = (req, res) => {
   // Create a Building
   const building = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    abbreviation: req.body.abbreviation,
+    assetId: req.body.assetId,
   };
 
   // Save Building in the database

@@ -16,4 +16,7 @@ module.exports = (sequelize, Sequelize) => {
         defaultValue: false,
       }
     });
+
+    // Foreign keys:
+    // - categoryId (non-nullable)
 };

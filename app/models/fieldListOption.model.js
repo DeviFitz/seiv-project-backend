@@ -10,4 +10,7 @@ module.exports = (sequelize, Sequelize) => {
         allowNull: false,
       },
     });
+
+    // Foreign keys:
+    // - listId (non-nullable)
 };

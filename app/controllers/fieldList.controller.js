@@ -4,7 +4,7 @@ const FieldList = db.fieldList;
 // Create and Save a new FieldList
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.name) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,7 @@ exports.create = (req, res) => {
   // Create a FieldList
   const fieldList = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    name: req.body.name,
   };
 
   // Save FieldList in the database

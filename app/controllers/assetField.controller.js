@@ -4,7 +4,7 @@ const AssetField = db.assetField;
 // Create and Save a new AssetField
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.label || !req.body.row || !req.body.rowSpan || !req.body.column || !req.body.columnSpan || !req.body.assetTypeId) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,16 @@ exports.create = (req, res) => {
   // Create an AssetField
   const assetField = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    label: req.body.label,
+    row: req.body.row,
+    rowSpan: req.body.rowSpan,
+    column: req.body.column,
+    columnSpan: req.body.columnSpan,
+    required: req.body.required,
+    templateField: req.body.templateField,
+    type: req.body.type,
+    assetTypeId: req.body.assetTypeId,
+    fieldListId: req.body.fieldListId,
   };
 
   // Save AssetField in the database

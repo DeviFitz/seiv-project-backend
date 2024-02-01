@@ -4,7 +4,7 @@ const Person = db.person;
 // Create and Save a new Person
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.fName || !req.body.lName || !req.body.email) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });

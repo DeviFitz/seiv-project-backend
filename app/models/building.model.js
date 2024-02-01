@@ -11,4 +11,7 @@ module.exports = (sequelize, Sequelize) => {
         unique: true,
       },
     });
+
+    // Foreign keys:
+    // - assetId (non-nullable)
 };

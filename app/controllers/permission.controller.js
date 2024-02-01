@@ -4,7 +4,7 @@ const Permission = db.permission;
 // Create and Save a new Permission
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.fName) {
+  if (!req.body.name) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -14,9 +14,8 @@ exports.create = (req, res) => {
   // Create a Permission
   const permission = {
     id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
+    name: req.body.name,
+    description: req.body.description,
   };
 
   // Save Permission in the database

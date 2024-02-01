@@ -41,4 +41,9 @@ module.exports = (sequelize, Sequelize) => {
         defaultValue: "TextField",
       }
     });
+
+    // Foreign keys:
+    // - assetTypeId (non-nullable)
+    // - fieldListId (nullable)
+
 };

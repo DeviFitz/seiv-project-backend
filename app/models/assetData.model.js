@@ -9,4 +9,8 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.STRING(500),
       },
     });
+
+    // Foreign keys:
+    // - assetId (non-nullable)
+    // - fieldId (non-nullable)
 };

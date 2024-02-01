@@ -1,12 +1,14 @@
 module.exports = (sequelize, Sequelize) => {
-  return sequelize.define("user", {
+  return sequelize.define("fieldList", {
     id: {
       type: Sequelize.INTEGER,
       autoIncrement: true,
       primaryKey: true,
     },
-    groupExpiration: {
-      type: Sequelize.DATE,
+    name: {
+      type: Sequelize.STRING(50),
+      allowNull: false,
+      unique: true,
     },
   });
 };

@@ -263,7 +263,7 @@ db.room.belongsTo(
 db.session.belongsTo(
   db.user,
   { 
-    as: "student",
+    as: "user",
     foreignKey: { allowNull: false },
     onDelete: "CASCADE",
     hooks: true 

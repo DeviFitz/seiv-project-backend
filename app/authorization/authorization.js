@@ -1,41 +1,38 @@
 const db = require("../models");
 const Session = db.session;
+const Op = db.Sequelize.Op;
 
-authenticate = (req, res, next) => {
-  let token = null;
-  console.log("authenticate");
-  let authHeader = req.get("authorization");
-  if (authHeader != null) {
-    if (authHeader.startsWith("Bearer ")) {
-      token = authHeader.slice(7);
+authenticate = async (req, res, next) => {
+  const authHeader = req.get("authorization");
 
-      Session.findAll({ where: { token: token } })
-        .then((data) => {
-          let session = data[0];
-          console.log(session.expirationDate);
-          if (session != null) {
-            if (session.expirationDate >= Date.now()) {
-              next();
-              return;
-            } else
-              return res.status(401).send({
-                message: "Unauthorized! Expired Token, Logout and Login again",
-              });
-          }
-        })
-        .catch((err) => {
-          console.log(err.message);
-        });
-    }
-  } else {
-    return res.status(401).send({
-      message: "Unauthorized! No Auth Header",
+  // Make sure auth header is not null
+  if (!authHeader) return res.status(401).send({
+    message: "Unauthorized! No Auth Header.",
+  });
+
+  // Make sure that the auth header is the one we want to recognize
+  if (authHeader.startsWith("Bearer ")) {
+    const session = (await Session.findOne({ where: {
+      token: authHeader.slice(7),
+      expirationDate: { [Op.gt]: Date.now() }
+    }}))?.dataValues
+
+    if (!!session) next();
+    else return res.status(401).send({
+      message: "Unauthorized! Expired Token, Logout and Login again.",
     });
+  }
+  else
+  {
+    return res.status(401).send({
+      message: "Unauthorized! Invalid authorization header."
+    })
   }
 };
 
+// Load up object to export
 const auth = {
-  authenticate: authenticate,
+  authenticate,
 };
 
 module.exports = auth;

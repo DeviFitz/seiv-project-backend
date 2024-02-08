@@ -1,6 +1,5 @@
 const db = require("../models");
 const Session = db.session;
-const Op = db.Sequelize.Op;
 
 const authenticate = async (req, res, next) => {
   const authHeader = req.get("authorization");
@@ -12,18 +11,26 @@ const authenticate = async (req, res, next) => {
 
   // Make sure that the auth header is the one we want to recognize
   if (authHeader.startsWith("Bearer ")) {
-    const session = (await Session.findOne({ where: {
-      token: authHeader.slice(7),
-      expirationDate: { [Op.gt]: Date.now() }
-    }}))?.dataValues
+    let session = {};
+    let attempts = 10;
+    do {
+      session = (await Session.findOne({ where: {
+        token: authHeader.slice(7)
+      }}))?.dataValues
 
-    if (!!session)
-    {
+      if (session?.expirationDate <= Date.now())
+        await Session.update({ ...session, token: ""}, { where: { token: session.token } })
+        .catch((err) => {
+          console.log("Error deleting token from database!");
+        });
+    } while (session?.expirationDate <= Date.now() && --attempts > 0);
+
+    if (session?.expirationDate <= Date.now()) {
       req.requestingUserId = session.userId;
       next();
     }
     else return res.status(401).send({
-      message: "Unauthorized! Expired Token, Logout and Login again.",
+      message: "Unauthorized! Expired Token; Log out and log in again.",
     });
   }
   else

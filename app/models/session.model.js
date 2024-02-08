@@ -8,6 +8,7 @@ module.exports = (sequelize, Sequelize) => {
     token: {
       type: Sequelize.STRING(3000),
       allowNull: false,
+      unique: true,
     },
     email: {
       type: Sequelize.STRING,

@@ -1,13 +1,13 @@
 module.exports = (app) => {
     const alert = require("../controllers/alert.controller.js");
-    const { authenticate } = require("../authorization/authorization.js");
+    const { authenticate, hasPermission } = require("../authorization/authorization.js");
     let router = require("express").Router();
   
     // Create a new Alert
     router.post("/", [authenticate, /*Category Edit+*/], alert.create);
   
     // Retrieve all Alerts
-    router.get("/", [authenticate, /*Category Read+*/], alert.findAll);
+    router.get("/", [authenticate, hasPermission/*Category Read+*/], alert.findAll);
   
     // Retrieve a single Alert with id
     router.get("/:id", [authenticate, /*Category Read+*/], alert.findOne);

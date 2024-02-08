@@ -2,7 +2,7 @@ const db = require("../models");
 const Session = db.session;
 const Op = db.Sequelize.Op;
 
-authenticate = async (req, res, next) => {
+const authenticate = async (req, res, next) => {
   const authHeader = req.get("authorization");
 
   // Make sure auth header is not null
@@ -17,7 +17,11 @@ authenticate = async (req, res, next) => {
       expirationDate: { [Op.gt]: Date.now() }
     }}))?.dataValues
 
-    if (!!session) next();
+    if (!!session)
+    {
+      req.requestingUserId = session.userId;
+      next();
+    }
     else return res.status(401).send({
       message: "Unauthorized! Expired Token, Logout and Login again.",
     });
@@ -30,9 +34,15 @@ authenticate = async (req, res, next) => {
   }
 };
 
+const hasPermission = async (req, res, next) => {
+  console.log("Reading out user's ID: " + req.requestingUserId);
+  next();
+};
+
 // Load up object to export
 const auth = {
   authenticate,
+  hasPermission,
 };
 
 module.exports = auth;

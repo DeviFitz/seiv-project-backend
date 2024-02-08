@@ -1,5 +1,6 @@
 const db = require("../models");
 const Session = db.session;
+const User = db.user;
 
 const authenticate = async (req, res, next) => {
   const authHeader = req.get("authorization");
@@ -19,17 +20,23 @@ const authenticate = async (req, res, next) => {
       }}))?.dataValues
 
       if (session?.expirationDate <= Date.now())
-        await Session.update({ ...session, token: ""}, { where: { token: session.token } })
+        await Session.update({ token: null }, { where: { token: session.token } })
         .catch((err) => {
           console.log("Error deleting token from database!");
         });
     } while (session?.expirationDate <= Date.now() && --attempts > 0);
 
-    if (session?.expirationDate <= Date.now()) {
-      req.requestingUserId = session.userId;
+    if (session?.expirationDate > Date.now()) {
+      req.requestingUser = (await User.findByPk(session.userId, { where: { blocked: false } }))?.get({ plain: true });
+      if (!req.requestingUser) return res.status(401).send({
+        message: "Unauthorized! User is blocked.",
+      });
+
       next();
+      return;
     }
-    else return res.status(401).send({
+    
+    return res.status(401).send({
       message: "Unauthorized! Expired Token; Log out and log in again.",
     });
   }
@@ -42,7 +49,21 @@ const authenticate = async (req, res, next) => {
 };
 
 const hasPermission = async (req, res, next) => {
-  console.log("Reading out user's ID: " + req.requestingUserId);
+  // const user = (await User.findOne({
+  //   attributes: ['id', 'groupExpiration'],
+  //   where: { id: req.requestingUser.id },
+  //   include: [{
+  //     model: db.group,
+  //     as: "group",
+  //     attributes: ['name'],
+  //     // through: {
+  //     //   attributes: ['name'],
+  //     //   //where: {completed: true}
+  //     // }
+  //   }],
+  // }))?.get({ plain: true });
+
+  // Get user's permissions
   next();
 };
 

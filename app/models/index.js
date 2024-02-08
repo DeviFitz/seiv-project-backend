@@ -65,7 +65,7 @@ db.asset.belongsTo(
   { 
     as: "template",
     foreignKey: { allowNull: true },
-    onDelete: "CASCADE",
+    onDelete: "RESTRICT",
     hooks: true 
   }
 );
@@ -74,7 +74,7 @@ db.asset.belongsTo(
   { 
     as: "type",
     foreignKey: { allowNull: false },
-    onDelete: "CASCADE",
+    onDelete: "RESTRICT",
     hooks: true 
   }
 );
@@ -83,7 +83,7 @@ db.asset.belongsTo(
   { 
     as: "borrower",
     foreignKey: { allowNull: true },
-    onDelete: "CASCADE",
+    onDelete: "RESTRICT",
     hooks: true 
   }
 );
@@ -92,7 +92,7 @@ db.asset.belongsTo(
   { 
     as: "location",
     foreignKey: { allowNull: true },
-    onDelete: "CASCADE",
+    onDelete: "RESTRICT",
     hooks: true 
   }
 );
@@ -135,7 +135,7 @@ db.assetField.belongsTo(
   { 
     as: "fieldList",
     foreignKey: { allowNull: true },
-    onDelete: "CASCADE",
+    onDelete: "RESTRICT",
     hooks: true 
   }
 );
@@ -146,7 +146,7 @@ db.assetTemplate.belongsTo(
   { 
     as: "assetType",
     foreignKey: { allowNull: false },
-    onDelete: "CASCADE",
+    onDelete: "RESTRICT",
     hooks: true 
   }
 );
@@ -157,7 +157,7 @@ db.assetType.belongsTo(
   { 
     as: "category",
     foreignKey: { allowNull: false },
-    onDelete: "CASCADE",
+    onDelete: "RESTRICT",
     hooks: true 
   }
 );
@@ -208,7 +208,7 @@ db.log.belongsTo(
   { 
     as: "author",
     foreignKey: { allowNull: false },
-    onDelete: "CASCADE",
+    onDelete: "RESTRICT",
     hooks: true 
   }
 );
@@ -217,7 +217,7 @@ db.log.belongsTo(
   { 
     as: "person",
     foreignKey: { allowNull: true },
-    onDelete: "CASCADE",
+    onDelete: "RESTRICT",
     hooks: true 
   }
 );
@@ -226,7 +226,7 @@ db.log.belongsTo(
   { 
     as: "vendor",
     foreignKey: { allowNull: true },
-    onDelete: "CASCADE",
+    onDelete: "RESTRICT",
     hooks: true 
   }
 );
@@ -254,7 +254,7 @@ db.room.belongsTo(
   { 
     as: "building",
     foreignKey: { allowNull: false },
-    onDelete: "CASCADE",
+    onDelete: "RESTRICT",
     hooks: true 
   }
 );
@@ -276,7 +276,7 @@ db.templateData.belongsTo(
   { 
     as: "template",
     foreignKey: { allowNull: false },
-    onDelete: "CASCADE",
+    onDelete: "RESTRICT",
     hooks: true 
   }
 );
@@ -296,7 +296,7 @@ db.user.belongsTo(
   { 
     as: "group",
     foreignKey: { allowNull: true },
-    onDelete: "CASCADE",
+    onDelete: "RESTRICT",
     hooks: true 
   }
 );

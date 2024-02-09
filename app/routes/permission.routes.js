@@ -13,10 +13,10 @@ module.exports = (app) => {
     router.get("/:id", [authenticate], permission.findOne);
   
     // Update a Permission with id
-    router.put("/:id", [authenticate], permission.update);
+    //router.put("/:id", [authenticate], permission.update);
   
     // Delete a Permission with id
-    router.delete("/:id", [authenticate], permission.delete);
+    //router.delete("/:id", [authenticate], permission.delete);
   
     app.use("/asset-t3/permissions", router);
 };

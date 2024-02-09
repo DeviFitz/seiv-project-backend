@@ -9,11 +9,14 @@ const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
     acquire: dbConfig.pool.acquire,
     idle: dbConfig.pool.idle,
   },
+  logging: dbConfig.logging,
 });
-const db = {};
-db.Sequelize = Sequelize;
-db.sequelize = sequelize;
+const db = {
+  Sequelize,
+  sequelize,
+};
 
+//#region AddTables
 db.alert = require("./alert.model.js")(sequelize, Sequelize);
 db.alertType = require("./alertType.model.js")(sequelize, Sequelize);
 db.asset = require("./asset.model.js")(sequelize, Sequelize);
@@ -35,7 +38,9 @@ db.session = require("./session.model.js")(sequelize, Sequelize);
 db.templateData = require("./templateData.model.js")(sequelize, Sequelize);
 db.user = require("./user.model.js")(sequelize, Sequelize);
 db.vendor = require("./vendor.model.js")(sequelize, Sequelize);
+//#endregion
 
+//#region ForeignKeys
 // Foreign keys for Alert
 db.alert.belongsTo(
   db.alertType,
@@ -316,5 +321,6 @@ db.user.belongsTo(
 
 // Foreign keys for Vendor
 // None!
+//#endregion
 
 module.exports = db;

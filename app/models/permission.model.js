@@ -11,7 +11,7 @@ module.exports = (sequelize, Sequelize) => {
         unique: true,
       },
       description: {
-        type: Sequelize.STRING(75),
+        type: Sequelize.STRING(125),
       },
     });
 };

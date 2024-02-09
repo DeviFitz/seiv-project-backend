@@ -1,7 +1,7 @@
 module.exports = (app) => {
     const log = require("../controllers/log.controller.js");
     const { authenticate } = require("../authorization/authorization.js");
-    let router = require("express").Router();
+    const router = require("express").Router();
   
     // Create a new Log
     router.post("/", [authenticate], log.create);

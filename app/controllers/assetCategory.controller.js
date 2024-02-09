@@ -1,15 +1,14 @@
 const db = require("../models");
 const AssetCategory = db.assetCategory;
+const Permission = db.permission;
 
 // Create and Save a new AssetCategory
-exports.create = (req, res) => {
+exports.create = async (req, res) => {
+  
   // Validate request
-  if (!req.body.name) {
-    res.status(400).send({
-      message: "Content cannot be empty!",
-    });
-    return;
-  }
+  if (!req.body.name) return res.status(400).send({
+    message: "Content cannot be empty!",
+  });
 
   // Create an AssetCategory
   const assetCategory = {
@@ -19,15 +18,35 @@ exports.create = (req, res) => {
   };
 
   // Save AssetCategory in the database
-  AssetCategory.create(assetCategory)
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: err.message || "Some error occurred while creating the asset category.",
-      });
+  let error = false;
+  let response = {};
+  await AssetCategory.create(assetCategory)
+  .then((data) => {
+    response = data;
+  })
+  .catch((err) => {
+    res.status(500).send({
+      message: err.message || "Some error occurred while creating the asset category.",
     });
+    error = true;
+  });
+
+  if (error) return;
+
+  const categoryPermissions = this.getPermissions(response.dataValues.id, assetCategory.name);
+  
+  Permission.bulkCreate(categoryPermissions)
+  .then((data) => {
+    res.send(response.get({ plain: true }));
+  })
+  .catch(async (err) => {
+    await AssetCategory.destroy({ where: {
+      id: categoryPermissions.map(category => category.categoryId),
+    }});
+    res.status(500).send({
+      message: err.message || "Some error occurred while creating the asset category's permissions.",
+    });
+  });
 };
 
 // Retrieve all AssetCategorys from the database.
@@ -132,3 +151,31 @@ exports.deleteAll = (req, res) => {
       });
     });
 };
+
+/**Generates permissions to match the category
+ * 
+ * @param categoryId The category's id
+ * @param categoryName The category's name
+*/
+exports.getPermissions = (categoryId, categoryName) => [
+  {
+    name: `Create Under Category: "${categoryName}"`,
+    description: `Gives permission to create permitted items under the "${categoryName}" asset category.`,
+    categoryId,
+  },
+  {
+    name: `Delete Under Category: "${categoryName}"`,
+    description: `Gives permission to delete permitted items under the "${categoryName}" asset category.`,
+    categoryId,
+  },
+  {
+    name: `Edit Under Category: "${categoryName}"`,
+    description: `Gives permission to edit permitted items under the "${categoryName}" asset category.`,
+    categoryId,
+  },
+  {
+    name: `View Under Category: "${categoryName}"`,
+    description: `Gives permission to view permitted items under the "${categoryName}" asset category.`,
+    categoryId,
+  },
+]

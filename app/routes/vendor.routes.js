@@ -1,7 +1,7 @@
 module.exports = (app) => {
     const vendor = require("../controllers/vendor.controller.js");
     const { authenticate } = require("../authorization/authorization.js");
-    let router = require("express").Router();
+    const router = require("express").Router();
   
     // Create a new Vendor
     router.post("/", [authenticate], vendor.create);

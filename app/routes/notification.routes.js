@@ -1,7 +1,7 @@
 module.exports = (app) => {
     const notification = require("../controllers/notification.controller.js");
     const { authenticate } = require("../authorization/authorization.js");
-    let router = require("express").Router();
+    const router = require("express").Router();
   
     // Create a new Notification
     router.post("/", [authenticate], notification.create);

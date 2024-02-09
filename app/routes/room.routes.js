@@ -1,7 +1,7 @@
 module.exports = (app) => {
     const room = require("../controllers/room.controller.js");
     const { authenticate } = require("../authorization/authorization.js");
-    let router = require("express").Router();
+    const router = require("express").Router();
   
     // Create a new Room
     router.post("/", [authenticate], room.create);

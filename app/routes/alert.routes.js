@@ -1,7 +1,7 @@
 module.exports = (app) => {
     const alert = require("../controllers/alert.controller.js");
     const { authenticate, getPermissions } = require("../authorization/authorization.js");
-    let router = require("express").Router();
+    const router = require("express").Router();
   
     // Create a new Alert
     router.post("/", [authenticate, /*Category Edit+*/], alert.create);

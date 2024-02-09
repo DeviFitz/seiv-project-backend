@@ -1,7 +1,7 @@
 module.exports = (app) => {
     const fieldListOption = require("../controllers/fieldListOption.controller.js");
     const { authenticate } = require("../authorization/authorization.js");
-    let router = require("express").Router();
+    const router = require("express").Router();
   
     // Create a new FieldListOption
     router.post("/", [authenticate], fieldListOption.create);

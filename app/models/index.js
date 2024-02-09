@@ -243,12 +243,20 @@ db.notification.belongsTo(
     as: "user",
     foreignKey: { allowNull: false },
     onDelete: "CASCADE",
-    hooks: true 
+    hooks: true
   }
 );
 
 // Foreign keys for Permission
-// None!
+db.permission.belongsTo(
+  db.assetCategory,
+  {
+    as: "category",
+    foreignKey: { allowNull: true },
+    onDelete: "CASCADE",
+    hooks: true
+  }
+);
 
 // Foreign keys for Person
 // None!

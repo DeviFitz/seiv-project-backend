@@ -22,6 +22,8 @@ app.use(express.json());
 // parse requests of content-type - application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: true }));
 
+console.log("Starting up...");
+
 //#region Get necessary routes
 require("./app/routes/alert.routes")(app);
 require("./app/routes/alertType.routes")(app);
@@ -60,135 +62,169 @@ const determineDefaults = async () => {
   await startup;
   console.log("Database synced!")
 
-  // Create default permissions
-  const defaultPermissions = [
-    {
-      name: "Assign Group",
-      description: "Gives permission to assign users in lower priorities to groups.",
-    },
-    {
-      name: "Block User",
-      description: "Gives permission to block or unblock users.",
-    },
-    {
-      name: "Change User Permissions",
-      description: "Gives permission to change the specific permissions of users in lower-priority groups.",
-    },
-    {
-      name: "Create Asset Profile",
-      description: "Gives permission to create asset templates (AKA \"profiles\").",
-    },
-    {
-      name: "Create Asset Type",
-      description: "Gives permission to create asset types.",
-    },
-    {
-      name: "Create Category",
-      description: "Gives permission to create asset categories.",
-    },
-    {
-      name: "Create Group",
-      description: "Gives permission to create groups of a lower or equal priority.",
-    },
-    {
-      name: "Create Location",
-      description: "Gives permission to create locations (such as buildings and rooms).",
-    },
-    {
-      name: "Create User",
-      description: "Gives permission to create users out of people.",
-    },
-    {
-      name: "Create Vendor",
-      description: "Gives permission to create vendors.",
-    },
-    {
-      name: "Delete Asset Profile",
-      description: "Gives permission to delete asset templates (AKA \"profiles\").",
-    },
-    {
-      name: "Delete Asset Type",
-      description: "Gives permission to delete asset types.",
-    },
-    {
-      name: "Delete Category",
-      description: "Gives permission to delete asset categories.",
-    },
-    {
-      name: "Delete Group",
-      description: "Gives permission to delete groups of a lower or equal priority.",
-    },
-    {
-      name: "Delete Location",
-      description: "Gives permission to delete locations (such as buildings and rooms).",
-    },
-    {
-      name: "Delete Vendor",
-      description: "Gives permission to delete vendors.",
-    },
-    {
-      name: "Edit Asset Profile",
-      description: "Gives permission to edit asset templates (AKA \"profiles\").",
-    },
-    {
-      name: "Edit Asset Type",
-      description: "Gives permission to edit asset types.",
-    },
-    {
-      name: "Edit Category",
-      description: "Gives permission to edit asset categories.",
-    },
-    {
-      name: "Edit Group",
-      description: "Gives permission to edit groups of a lower or equal priority.",
-    },
-    {
-      name: "Edit Location",
-      description: "Gives permission to edit locations (such as buildings and rooms).",
-    },
-    {
-      name: "Edit Vendor",
-      description: "Gives permission to edit vendors.",
-    },
-    {
-      name: "Remove User",
-      description: "Gives permission to remove a user status from people in lower-priority groups."
-    },
-    {
-      name: "Super Assign Group",
-      description: "Gives permission to assign users in equal or lower priorities to groups.",
-    },
-    {
-      name: "Super Change User Permissions",
-      description: "Gives permission to change the specific permissions of users in equal- or lower-priority groups.",
-    },
-    {
-      name: "Super Remove User",
-      description: "Gives permission to remove a user status from people in equal- or lower-priority groups."
-    },
-    {
-      name: "View User",
-      description: "Gives permission to view a user's permissions and other user-specific data."
-    },
-  ];
-
-  // Make sure the default permissions exist
-  const permissions = await Promise.all(defaultPermissions.map(async (def) => (await db.permission.findOrCreate({
-    where: {
-      name: def.name
-    },
-    defaults: def,
-  }))?.[0]));
+  /**Sets the defaults related to permissions*/
+  const permissionDefaults = async () => {
+    // Create default permissions
+    const defaultPermissions = [
+      {
+        name: "Assign Group",
+        description: "Gives permission to assign users in lower priorities to groups.",
+      },
+      {
+        name: "Block User",
+        description: "Gives permission to block or unblock users.",
+      },
+      {
+        name: "Change User Permissions",
+        description: "Gives permission to change the specific permissions of users in lower-priority groups.",
+      },
+      {
+        name: "Create Asset Profile",
+        description: "Gives permission to create asset templates (AKA \"profiles\").",
+      },
+      {
+        name: "Create Asset Type",
+        description: "Gives permission to create asset types.",
+      },
+      {
+        name: "Create Category",
+        description: "Gives permission to create asset categories.",
+      },
+      {
+        name: "Create Group",
+        description: "Gives permission to create groups of a lower or equal priority.",
+      },
+      {
+        name: "Create Location",
+        description: "Gives permission to create locations (such as buildings and rooms).",
+      },
+      {
+        name: "Create User",
+        description: "Gives permission to create users out of people.",
+      },
+      {
+        name: "Create Vendor",
+        description: "Gives permission to create vendors.",
+      },
+      {
+        name: "Delete Asset Profile",
+        description: "Gives permission to delete asset templates (AKA \"profiles\").",
+      },
+      {
+        name: "Delete Asset Type",
+        description: "Gives permission to delete asset types.",
+      },
+      {
+        name: "Delete Category",
+        description: "Gives permission to delete asset categories.",
+      },
+      {
+        name: "Delete Group",
+        description: "Gives permission to delete groups of a lower or equal priority.",
+      },
+      {
+        name: "Delete Location",
+        description: "Gives permission to delete locations (such as buildings and rooms).",
+      },
+      {
+        name: "Delete Vendor",
+        description: "Gives permission to delete vendors.",
+      },
+      {
+        name: "Edit Asset Profile",
+        description: "Gives permission to edit asset templates (AKA \"profiles\").",
+      },
+      {
+        name: "Edit Asset Type",
+        description: "Gives permission to edit asset types.",
+      },
+      {
+        name: "Edit Category",
+        description: "Gives permission to edit asset categories.",
+      },
+      {
+        name: "Edit Group",
+        description: "Gives permission to edit groups of a lower or equal priority.",
+      },
+      {
+        name: "Edit Location",
+        description: "Gives permission to edit locations (such as buildings and rooms).",
+      },
+      {
+        name: "Edit Vendor",
+        description: "Gives permission to edit vendors.",
+      },
+      {
+        name: "Remove User",
+        description: "Gives permission to remove a user status from people in lower-priority groups."
+      },
+      {
+        name: "Super Assign Group",
+        description: "Gives permission to assign users in equal or lower priorities to groups.",
+      },
+      {
+        name: "Super Change User Permissions",
+        description: "Gives permission to change the specific permissions of users in equal- or lower-priority groups.",
+      },
+      {
+        name: "Super Remove User",
+        description: "Gives permission to remove a user status from people in equal- or lower-priority groups."
+      },
+      {
+        name: "View User",
+        description: "Gives permission to view a user's permissions and other user-specific data."
+      },
+    ];
   
-  // Create default super user group & assign permissions
-  const superUser = (await db.group.findOrCreate({
-    where: { name: "Super User" },
-    defaults: { priority: 0 },
-  }))?.[0];
-
-  // Add all permissions to super user
-  await superUser.addPermissions(permissions);
+    // Make sure the default permissions exist
+    const permissions = await Promise.all(defaultPermissions.map(async (def) => (await db.permission.findOrCreate({
+      where: {
+        name: def.name
+      },
+      defaults: def,
+    }))?.[0]));
+    
+    // Create default super user group & assign permissions
+    const superUser = (await db.group.findOrCreate({
+      where: { name: "Super User" },
+      defaults: { priority: 0 },
+    }))?.[0];
   
+    // Add all permissions to super user
+    await superUser.addPermissions(permissions);
+  };
+
+  /**Creates the default categories*/
+  const categoryDefaults = async () => {
+    const { getPermissions } = require("./app/controllers/assetCategory.controller.js");
+    const defaultCategories = [
+      {
+        name: "Locations",
+        description: "A category reserved for buildings and rooms.",
+      }
+    ];
+    
+    defaultCategories.forEach(async (category) => {
+      const newCat = (await db.assetCategory.findOrCreate({
+        where: { name: category.name },
+        defaults: category,
+        raw: true,
+      }))?.[0];
+
+      // Generate the new permissions
+      const newPerms = getPermissions(newCat.id, newCat.name);
+      
+      const catPerms = !!newCat ? (await db.permission.bulkCreate(newPerms, { updateOnDuplicate: ['categoryId'] })) : [];
+      if (catPerms.length < newPerms.length)
+      {
+        await db.assetCategory.destroy({ where: { id: newCat.id } });
+        console.log("Error adding category: " + category.name);
+      }
+    });
+  };
+  
+  // Make sure all tasks are finished
+  await Promise.all([permissionDefaults(), categoryDefaults()]);
   console.log("Defaults uploaded!");
 };
 determineDefaults();

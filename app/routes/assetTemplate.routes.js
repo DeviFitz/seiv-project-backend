@@ -1,7 +1,7 @@
 module.exports = (app) => {
     const assetTemplate = require("../controllers/assetTemplate.controller.js");
     const { authenticate } = require("../authorization/authorization.js");
-    let router = require("express").Router();
+    const router = require("express").Router();
   
     // Create a new AssetTemplate
     router.post("/", [authenticate], assetTemplate.create);

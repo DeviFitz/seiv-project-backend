@@ -1,7 +1,7 @@
 module.exports = (app) => {
     const building = require("../controllers/building.controller.js");
     const { authenticate } = require("../authorization/authorization.js");
-    let router = require("express").Router();
+    const router = require("express").Router();
   
     // Create a new Building
     router.post("/", [authenticate], building.create);

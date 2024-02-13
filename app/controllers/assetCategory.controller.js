@@ -54,19 +54,19 @@ exports.create = async (req, res) => {
   });
 };
 
-// Retrieve all AssetCategorys from the database.
+// Retrieve all AssetCategories from the database.
 exports.findAll = (req, res) => {
   const id = req.query.id;
 
-  AssetCategory.findAll({ where: {} })
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: err.message || "Some error occurred while retrieving asset categories.",
-      });
+  AssetCategory.findAll()
+  .then((data) => {
+    res.send(data);
+  })
+  .catch((err) => {
+    res.status(500).send({
+      message: err.message || "Some error occurred while retrieving asset categories.",
     });
+  });
 };
 
 // Find a single AssetCategory with an id
@@ -74,46 +74,58 @@ exports.findOne = (req, res) => {
   const id = req.params.id;
 
   AssetCategory.findByPk(id)
-    .then((data) => {
-      if (data) {
-        res.send(data);
-      } else {
-        res.status(404).send({
-          message: `Cannot find asset category with id=${id}.`,
-        });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Error retrieving asset category with id=" + id,
+  .then((data) => {
+    if (data) {
+      res.send(data);
+    } else {
+      res.status(404).send({
+        message: `Cannot find asset category with id=${id}.`,
       });
+    }
+  })
+  .catch((err) => {
+    res.status(500).send({
+      message: "Error retrieving asset category with id=" + id,
     });
+  });
 };
 
 // Update an AssetCategory by the id in the request
 exports.update = (req, res) => {
   const id = req.params.id;
-  // NOTE: Update later to change permissions' names when the category's name is changed
 
   AssetCategory.update(req.body, {
     where: { id },
   })
-    .then((num) => {
-      if (num == 1) {
-        res.send({
-          message: "Asset category was updated successfully.",
-        });
-      } else {
-        res.send({
-          message: `Cannot update asset category with id=${id}. Maybe asset category was not found or req.body is empty!`,
-        });
+  .then(async (num) => {
+    if (num > 0) {
+      // If the category's name changed, we need to update its permissions
+      if (!!req.body?.name)
+      {
+        const permissions = (await Permission.findAll({
+          where: { categoryId: id },
+        }))?.get({ plain: true });
+
+        await Promise.all(permissions?.map(async (permission) => {
+          permission.name = permission.name.replace(`\"[a-zA-Z]*\"`, `\"${req.body.name}\"`);
+          permission.description = permission.description.replace(`\"[a-zA-Z]*\"`, `\"${req.body.name}\"`);
+          await Permission.update(permission, { where: { id: permission.id } });
+        }));
       }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Error updating asset category with id=" + id,
+      res.send({
+        message: "Asset category was updated successfully.",
       });
+    } else {
+      res.send({
+        message: `Cannot update asset category with id=${id}. Maybe asset category was not found or req.body is empty!`,
+      });
+    }
+  })
+  .catch((err) => {
+    res.status(500).send({
+      message: "Error updating asset category with id=" + id,
     });
+  });
 };
 
 // Delete an AssetCategory with the specified id in the request

@@ -2,33 +2,33 @@ const db = require("../models");
 const Permission = db.permission;
 
 // Create and Save a new Permission
-exports.create = (req, res) => {
-  // Validate request
-  if (!req.body.name) {
-    res.status(400).send({
-      message: "Content cannot be empty!",
-    });
-    return;
-  }
+// exports.create = (req, res) => {
+//   // Validate request
+//   if (!req.body.name) {
+//     res.status(400).send({
+//       message: "Content cannot be empty!",
+//     });
+//     return;
+//   }
 
-  // Create a Permission
-  const permission = {
-    id: req.body.id,
-    name: req.body.name,
-    description: req.body.description,
-  };
+//   // Create a Permission
+//   const permission = {
+//     id: req.body.id,
+//     name: req.body.name,
+//     description: req.body.description,
+//   };
 
-  // Save Permission in the database
-  Permission.create(permission)
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: err.message || "Some error occurred while creating the permission.",
-      });
-    });
-};
+//   // Save Permission in the database
+//   Permission.create(permission)
+//     .then((data) => {
+//       res.send(data);
+//     })
+//     .catch((err) => {
+//       res.status(500).send({
+//         message: err.message || "Some error occurred while creating the permission.",
+//       });
+//     });
+// };
 
 // Retrieve all Permissions from the database.
 exports.findAll = (req, res) => {

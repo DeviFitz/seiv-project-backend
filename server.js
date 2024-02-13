@@ -177,23 +177,14 @@ const determineDefaults = async () => {
     ];
   
     // Make sure the default permissions exist
-    const permissions = await Promise.all(defaultPermissions.map(async (def) => (await db.permission.findOrCreate({
+    await Promise.all(defaultPermissions.map(async (def) => (await db.permission.findOrCreate({
       where: {
         name: def.name
       },
       defaults: def,
     }))?.[0]));
-    
-    // Create default super user group & assign permissions
-    const superUser = (await db.group.findOrCreate({
-      where: { name: "Super User" },
-      defaults: { priority: 0 },
-    }))?.[0];
-  
-    // Add all permissions to super user
-    await superUser.addPermissions(permissions);
   };
-
+  
   /**Creates the default categories*/
   const categoryDefaults = async () => {
     const { getPermissions } = require("./app/controllers/assetCategory.controller.js");
@@ -210,7 +201,7 @@ const determineDefaults = async () => {
         defaults: category,
         raw: true,
       }))?.[0];
-
+      
       // Generate the new permissions
       const newPerms = getPermissions(newCat.id, newCat.name);
       
@@ -223,10 +214,30 @@ const determineDefaults = async () => {
     });
   };
   
+  /**Creates default groups and adds their necessary permissions*/
+  const groups = async () => {
+    // Create default super user group & assign permissions
+    const superUser = (await db.group.findOrCreate({
+      where: { name: "Super User" },
+      defaults: { priority: 0 },
+    }))?.[0];
+    
+    // Add all permissions to super user
+    await superUser.addPermissions(await db.permission.findAll());
+  };
+  
   // Make sure all tasks are finished
   await Promise.all([permissionDefaults(), categoryDefaults()]);
+  // Groups needs to run after the previous two to make sure all permissions are added as needed
+  await Promise.all([groups()]);
   console.log("Defaults uploaded!");
 };
-determineDefaults();
+determineDefaults()
+.then(data => {
+  console.log("Finished startup!");
+})
+.catch(error => {
+  console.log("Error handling defaults!");
+});
 
 module.exports = app;

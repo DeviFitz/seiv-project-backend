@@ -36,12 +36,17 @@ exports.create = async (req, res) => {
   const categoryPermissions = this.getPermissions(response.dataValues.id, assetCategory.name);
   
   Permission.bulkCreate(categoryPermissions)
-  .then((data) => {
+  .then(async (data) => {
+    new Set(["Super User", ...(req.body.permittedGroups ?? [])])
+    .forEach(async (groupName) => {
+      const group = await db.group.findOne({ where: { name: groupName } })
+      if (!!group) await group.addPermissions(data);
+    });
     res.send(response.get({ plain: true }));
   })
   .catch(async (err) => {
     await AssetCategory.destroy({ where: {
-      id: categoryPermissions.map(category => category.categoryId),
+      id: response.dataValues.id,
     }});
     res.status(500).send({
       message: err.message || "Some error occurred while creating the asset category's permissions.",
@@ -88,9 +93,10 @@ exports.findOne = (req, res) => {
 // Update an AssetCategory by the id in the request
 exports.update = (req, res) => {
   const id = req.params.id;
+  // NOTE: Update later to change permissions' names when the category's name is changed
 
   AssetCategory.update(req.body, {
-    where: { id: id },
+    where: { id },
   })
     .then((num) => {
       if (num == 1) {
@@ -115,41 +121,24 @@ exports.delete = (req, res) => {
   const id = req.params.id;
 
   AssetCategory.destroy({
-    where: { id: id },
+    where: { id },
   })
-    .then((num) => {
-      if (num == 1) {
-        res.send({
-          message: "AssetCategory was deleted successfully!",
-        });
-      } else {
-        res.send({
-          message: `Cannot delete asset category with id=${id}. Maybe asset category was not found!`,
-        });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Could not delete asset category with id=" + id,
+  .then((num) => {
+    if (num == 1) {
+      res.send({
+        message: "AssetCategory was deleted successfully!",
       });
-    });
-};
-
-// Delete all AssetCategorys from the database.
-exports.deleteAll = (req, res) => {
-  AssetCategory.destroy({
-    where: {},
-    truncate: false,
+    } else {
+      res.send({
+        message: `Cannot delete asset category with id=${id}. Maybe asset category was not found!`,
+      });
+    }
   })
-    .then((nums) => {
-      res.send({ message: `${nums} asset categories were deleted successfully!` });
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while removing all asset categories.",
-      });
+  .catch((err) => {
+    res.status(500).send({
+      message: "Could not delete asset category with id=" + id,
     });
+  });
 };
 
 /**Generates permissions to match the category

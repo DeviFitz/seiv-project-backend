@@ -69,6 +69,7 @@ const getPermissions = async (req, res, next) => {
   ]);
 
   req.requestingUser.dataValues.permissions = [...permissions.values()];
+  //console.log(req)
   next();
 };
 
@@ -76,4 +77,4 @@ const getPermissions = async (req, res, next) => {
 module.exports = {
   authenticate,
   getPermissions,
-};;
+};

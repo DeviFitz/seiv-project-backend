@@ -79,6 +79,10 @@ const determineDefaults = async () => {
         description: "Gives permission to change the specific permissions of users in lower-priority groups.",
       },
       {
+        name: "Create Alert Type",
+        description: "Gives permission to create alert types.",
+      },
+      {
         name: "Create Asset Profile",
         description: "Gives permission to create asset templates (AKA \"profiles\").",
       },
@@ -89,6 +93,10 @@ const determineDefaults = async () => {
       {
         name: "Create Category",
         description: "Gives permission to create asset categories.",
+      },
+      {
+        name: "Create Field List",
+        description: "Gives permission to create lists for custom dropdown fields.",
       },
       {
         name: "Create Group",
@@ -107,6 +115,10 @@ const determineDefaults = async () => {
         description: "Gives permission to create vendors.",
       },
       {
+        name: "Delete Alert Type",
+        description: "Gives permission to delete alert types.",
+      },
+      {
         name: "Delete Asset Profile",
         description: "Gives permission to delete asset templates (AKA \"profiles\").",
       },
@@ -117,6 +129,10 @@ const determineDefaults = async () => {
       {
         name: "Delete Category",
         description: "Gives permission to delete asset categories.",
+      },
+      {
+        name: "Delete Field List",
+        description: "Gives permission to delete lists for custom dropdown fields.",
       },
       {
         name: "Delete Group",
@@ -131,6 +147,10 @@ const determineDefaults = async () => {
         description: "Gives permission to delete vendors.",
       },
       {
+        name: "Edit Alert Type",
+        description: "Gives permission to edit alert types.",
+      },
+      {
         name: "Edit Asset Profile",
         description: "Gives permission to edit asset templates (AKA \"profiles\").",
       },
@@ -141,6 +161,10 @@ const determineDefaults = async () => {
       {
         name: "Edit Category",
         description: "Gives permission to edit asset categories.",
+      },
+      {
+        name: "Edit Field List",
+        description: "Gives permission to edit lists for custom dropdown fields.",
       },
       {
         name: "Edit Group",

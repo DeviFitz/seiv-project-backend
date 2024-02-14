@@ -72,8 +72,6 @@ const getPermissions = async (req, res, next) => {
   next();
 };
 
-
-
 //#region Under Categories
 /**Gets the ids of categories that the user has permission to view under*/
 const getViewableCategories = async (req, res, next) => {
@@ -124,6 +122,16 @@ const getDeletableCategories = async (req, res, next) => {
 };
 //#endregion
 
+const checkCreateAlertType = async (req, res, next) => {
+  const canCreate = !!req.requestingUser.dataValues.permissions
+  .find(permission => permission.name.match(/(Create\s*Alert\s*Type)|(Alert\s*Type\s*Create)/i)?.length > 0)
+
+  if (canCreate) next();
+  else res.status(401).send({
+    message: "Unauthorized! User does not have permission to view data under any categories.",
+  });
+};
+
 // Load up object to export
 module.exports = {
   authenticate,
@@ -132,4 +140,5 @@ module.exports = {
   getEditableCategories,
   getCreatableCategories,
   getDeletableCategories,
+  checkCreateAlertType,
 };

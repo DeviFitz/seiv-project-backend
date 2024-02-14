@@ -9,7 +9,7 @@ module.exports = (app) => {
     const router = require("express").Router();
   
     // Create a new AssetData
-    router.post("/", [authenticate, getPermissions, getEditableCategories], assetData.create);
+    //router.post("/", [authenticate, getPermissions, getEditableCategories], assetData.create);
   
     // Retrieve all AssetData
     router.get("/", [authenticate, getPermissions, getViewableCategories], assetData.findAll);

@@ -5,11 +5,12 @@ module.exports = (app) => {
         getPermissions,
         getEditableCategories,
         getViewableCategories,
+        checkEditAssetType,
     } = require("../authorization/authorization.js");
     const router = require("express").Router();
   
     // Create a new AssetField
-    router.post("/", [authenticate, getPermissions, getEditableCategories /*AssetType Edit+*/], assetField.create);
+    router.post("/", [authenticate, getPermissions, getEditableCategories, checkEditAssetType], assetField.create);
   
     // Retrieve all AssetFields
     router.get("/", [authenticate, getPermissions, getViewableCategories], assetField.findAll);
@@ -18,10 +19,10 @@ module.exports = (app) => {
     router.get("/:id", [authenticate, getPermissions, getViewableCategories], assetField.findOne);
   
     // Update an AssetField with id
-    router.put("/:id", [authenticate, getPermissions, getEditableCategories /*AssetType Edit+*/], assetField.update);
+    router.put("/:id", [authenticate, getPermissions, getEditableCategories, checkEditAssetType], assetField.update);
   
     // Delete an AssetField with id
-    router.delete("/:id", [authenticate, getPermissions, getEditableCategories /*AssetType Edit+*/], assetField.delete);
+    router.delete("/:id", [authenticate, getPermissions, getEditableCategories, checkEditAssetType], assetField.delete);
   
     app.use("/asset-t3/asset-fields", router);
 };

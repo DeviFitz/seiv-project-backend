@@ -4,6 +4,8 @@ module.exports = (app) => {
         authenticate,
         getPermissions,
         checkCreateAlertType,
+        checkEditAlertType,
+        checkDeleteAlertType,
     } = require("../authorization/authorization.js");
     const router = require("express").Router();
   
@@ -17,10 +19,10 @@ module.exports = (app) => {
     router.get("/:id", [authenticate], alertType.findOne);
   
     // Update an AlertType with id
-    router.put("/:id", [authenticate, getPermissions /*Alert Type Edit+*/], alertType.update);
+    router.put("/:id", [authenticate, getPermissions, checkEditAlertType], alertType.update);
   
     // Delete an AlertType with id
-    router.delete("/:id", [authenticate, getPermissions /*Alert Type Delete+*/], alertType.delete);
+    router.delete("/:id", [authenticate, getPermissions, checkDeleteAlertType], alertType.delete);
   
     app.use("/asset-t3/alert-types", router);
 };

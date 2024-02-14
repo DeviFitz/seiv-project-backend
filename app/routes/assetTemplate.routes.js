@@ -6,23 +6,26 @@ module.exports = (app) => {
         getCreatableCategories,
         getEditableCategories,
         getViewableCategories,
+        checkCreateTemplate,
+        checkEditTemplate,
+        checkDeleteTemplate,
     } = require("../authorization/authorization.js");
     const router = require("express").Router();
   
     // Create a new AssetTemplate
-    router.post("/", [authenticate, getPermissions, getCreatableCategories /*Template Create+*/], assetTemplate.create);
+    router.post("/", [authenticate, getPermissions, getCreatableCategories, checkCreateTemplate], assetTemplate.create);
   
     // Retrieve all AssetTemplates
-    router.get("/", [authenticate, getPermissions, getViewableCategories /*Template View+*/], assetTemplate.findAll);
+    router.get("/", [authenticate, getPermissions, getViewableCategories], assetTemplate.findAll);
   
     // Retrieve a single AssetTemplate with id
-    router.get("/:id", [authenticate, getPermissions, getViewableCategories /*Template View+*/], assetTemplate.findOne);
+    router.get("/:id", [authenticate, getPermissions, getViewableCategories], assetTemplate.findOne);
   
     // Update an AssetTemplate with id
-    router.put("/:id", [authenticate, getPermissions, getEditableCategories /*Template Edit+*/], assetTemplate.update);
+    router.put("/:id", [authenticate, getPermissions, getEditableCategories, checkEditTemplate], assetTemplate.update);
   
     // Delete an AssetTemplate with id
-    router.delete("/:id", [authenticate, getPermissions, getEditableCategories /*Template Delete+*/], assetTemplate.delete);
+    router.delete("/:id", [authenticate, getPermissions, getEditableCategories, checkDeleteTemplate], assetTemplate.delete);
   
     app.use("/asset-t3/asset-templates", router);
 };

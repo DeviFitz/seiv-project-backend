@@ -3,15 +3,14 @@ module.exports = (app) => {
     const {
         authenticate,
         getPermissions,
-        getCreatableCategories,
         getEditableCategories,
         getViewableCategories,
-        getDeletableCategories,
+        checkEditTemplate,
     } = require("../authorization/authorization.js");
     const router = require("express").Router();
   
     // Create a new TemplateData
-    router.post("/", [authenticate, getPermissions, getCreatableCategories /*Template Edit+*/], templateData.create);
+    //router.post("/", [authenticate, getPermissions, getCreatableCategories /*Template Edit+*/], templateData.create);
   
     // Retrieve all TemplateDatas
     router.get("/", [authenticate, getPermissions, getViewableCategories], templateData.findAll);
@@ -20,10 +19,10 @@ module.exports = (app) => {
     router.get("/:id", [authenticate, getPermissions, getViewableCategories], templateData.findOne);
   
     // Update a TemplateData with id
-    router.put("/:id", [authenticate, getPermissions, getEditableCategories /*Template Edit+*/], templateData.update);
+    router.put("/:id", [authenticate, getPermissions, getEditableCategories, checkEditTemplate], templateData.update);
   
     // Delete a TemplateData with id
-    router.delete("/:id", [authenticate, getPermissions, getDeletableCategories /*Template Edit+*/], templateData.delete);
+    //router.delete("/:id", [authenticate, getPermissions, getDeletableCategories /*Template Edit+*/], templateData.delete);
   
     app.use("/asset-t3/template-data", router);
 };

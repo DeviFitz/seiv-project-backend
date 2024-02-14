@@ -3,27 +3,25 @@ module.exports = (app) => {
     const {
         authenticate,
         getPermissions,
-        getCreatableCategories,
-        getEditableCategories,
-        getViewableCategories,
-        getDeletableCategories,
+        checkEditFieldList,
+        checkDeleteFieldList,
     } = require("../authorization/authorization.js");
     const router = require("express").Router();
   
     // Create a new FieldListOption
-    router.post("/", [authenticate, getPermissions, getCreatableCategories /*Type Create+*/], fieldListOption.create);
+    router.post("/", [authenticate, getPermissions, checkEditFieldList], fieldListOption.create);
   
     // Retrieve all FieldListOptions
-    router.get("/", [authenticate, getPermissions, getViewableCategories], fieldListOption.findAll);
+    router.get("/", [authenticate], fieldListOption.findAll);
   
     // Retrieve a single FieldListOption with id
-    router.get("/:id", [authenticate, getPermissions, getViewableCategories], fieldListOption.findOne);
+    router.get("/:id", [authenticate], fieldListOption.findOne);
   
     // Update a FieldListOption with id
-    router.put("/:id", [authenticate, getPermissions, getEditableCategories /*Type Edit+*/], fieldListOption.update);
+    router.put("/:id", [authenticate, getPermissions, checkEditFieldList], fieldListOption.update);
   
     // Delete a FieldListOption with id
-    router.delete("/:id", [authenticate, getPermissions, getDeletableCategories /*Type Delete+*/], fieldListOption.delete);
+    router.delete("/:id", [authenticate, getPermissions, checkDeleteFieldList], fieldListOption.delete);
   
     app.use("/asset-t3/field-list-options", router);
 };

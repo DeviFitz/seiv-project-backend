@@ -94,9 +94,7 @@ exports.findOne = (req, res) => {
 exports.update = (req, res) => {
   const id = req.params.id;
 
-  AssetCategory.update(req.body, {
-    where: { id },
-  })
+  AssetCategory.update(req.body, { where: { id } })
   .then(async (num) => {
     if (num > 0) {
       // If the category's name changed, we need to update its permissions

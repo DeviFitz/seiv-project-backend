@@ -1,22 +1,28 @@
 module.exports = (app) => {
     const log = require("../controllers/log.controller.js");
-    const { authenticate } = require("../authorization/authorization.js");
+    const {
+        authenticate,
+        getPermissions,
+        getEditableCategories,
+        getViewableCategories,
+        getDeletableCategories,
+    } = require("../authorization/authorization.js");
     const router = require("express").Router();
   
     // Create a new Log
-    router.post("/", [authenticate], log.create);
+    router.post("/", [authenticate, getPermissions, getEditableCategories], log.create);
   
     // Retrieve all Logs
-    router.get("/", [authenticate], log.findAll);
+    router.get("/", [authenticate, getPermissions, getViewableCategories], log.findAll);
   
     // Retrieve a single Log with id
-    router.get("/:id", [authenticate], log.findOne);
+    router.get("/:id", [authenticate, getPermissions, getViewableCategories], log.findOne);
   
     // Update a Log with id
-    router.put("/:id", [authenticate], log.update);
+    router.put("/:id", [authenticate, getPermissions, getEditableCategories], log.update);
   
     // Delete a Log with id
-    router.delete("/:id", [authenticate], log.delete);
+    router.delete("/:id", [authenticate, getPermissions, getDeletableCategories], log.delete);
   
     app.use("/asset-t3/logs", router);
 };

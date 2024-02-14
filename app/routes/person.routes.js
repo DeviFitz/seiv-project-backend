@@ -13,10 +13,10 @@ module.exports = (app) => {
     router.get("/:id", [authenticate], person.findOne);
   
     // Update a Person with id
-    router.put("/:id", [authenticate], person.update);
+    //router.put("/:id", [authenticate], person.update);
   
     // Delete a Person with id
-    router.delete("/:id", [authenticate], person.delete);
+    //router.delete("/:id", [authenticate], person.delete);
   
     app.use("/asset-t3/people", router);
 };

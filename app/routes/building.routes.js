@@ -1,10 +1,16 @@
 module.exports = (app) => {
     const building = require("../controllers/building.controller.js");
-    const { authenticate } = require("../authorization/authorization.js");
+    const {
+        authenticate,
+        getPermissions,
+        getCreatableCategories,
+        getEditableCategories,
+        getDeletableCategories,
+    } = require("../authorization/authorization.js");
     const router = require("express").Router();
   
     // Create a new Building
-    router.post("/", [authenticate], building.create);
+    router.post("/", [authenticate, getPermissions, getCreatableCategories], building.create);
   
     // Retrieve all Buildings
     router.get("/", [authenticate], building.findAll);
@@ -13,10 +19,10 @@ module.exports = (app) => {
     router.get("/:id", [authenticate], building.findOne);
   
     // Update a Building with id
-    router.put("/:id", [authenticate], building.update);
+    router.put("/:id", [authenticate, getPermissions, getEditableCategories], building.update);
   
     // Delete a Building with id
-    router.delete("/:id", [authenticate], building.delete);
+    router.delete("/:id", [authenticate, getPermissions, getDeletableCategories], building.delete);
   
     app.use("/asset-t3/buildings", router);
 };

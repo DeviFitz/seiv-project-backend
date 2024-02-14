@@ -104,14 +104,15 @@ exports.update = (req, res) => {
       {
         const permissions = (await Permission.findAll({
           where: { categoryId: id },
-        }))?.get({ plain: true });
+        }))?.map(permission => permission.get({ plain: true }));
 
         await Promise.all(permissions?.map(async (permission) => {
-          permission.name = permission.name.replace(`\"[a-zA-Z]*\"`, `\"${req.body.name}\"`);
-          permission.description = permission.description.replace(`\"[a-zA-Z]*\"`, `\"${req.body.name}\"`);
+          permission.name = permission.name.replace(/"(\W|\w)*"/, `\"${req.body.name}\"`);
+          permission.description = permission.description.replace(/"(\W|\w)*"/, `\"${req.body.name}\"`);
           await Permission.update(permission, { where: { id: permission.id } });
         }));
       }
+
       res.send({
         message: "Asset category was updated successfully.",
       });
@@ -136,7 +137,7 @@ exports.delete = (req, res) => {
     where: { id },
   })
   .then((num) => {
-    if (num == 1) {
+    if (num >= 0) {
       res.send({
         message: "AssetCategory was deleted successfully!",
       });

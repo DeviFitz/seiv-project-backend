@@ -3,23 +3,27 @@ module.exports = (app) => {
   const {
     authenticate,
     getPermissions,
+    checkCreateUser,
+    checkViewUser,
+    getEditUserPerms,
+    checkRemoveUser,
   } = require("../authorization/authorization.js");
   const router = require("express").Router();
 
   // Create a new User
-  router.post("/", [authenticate, getPermissions /*Get Requestor's Priority, User Create+*/], user.create);
+  router.post("/", [authenticate, getPermissions, checkCreateUser], user.create);
 
   // Retrieve all People
-  router.get("/", [authenticate, getPermissions /*User View+*/], user.findAll);
+  router.get("/", [authenticate, getPermissions, checkViewUser], user.findAll);
 
   // Retrieve a single User with id
-  router.get("/:id", [authenticate, getPermissions /*User View+*/], user.findOne);
+  router.get("/:id", [authenticate, getPermissions, checkViewUser], user.findOne);
 
   // Update a User with id
-  router.put("/:id", [authenticate, getPermissions /*Get Requestor's Priority, Block User, Change User Permissions*/], user.update);
+  router.put("/:id", [authenticate, getPermissions, getEditUserPerms], user.update);
 
   // Delete a User with id
-  router.delete("/:id", [authenticate, getPermissions /*Get Requestor's Priority, User Remove+*/], user.delete);
+  router.delete("/:id", [authenticate, getPermissions, checkRemoveUser], user.delete);
 
   app.use("/asset-t3/users", router);
 };

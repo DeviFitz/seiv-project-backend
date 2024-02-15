@@ -58,9 +58,12 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-/**Gets the user's permissions and attaches them to req.requestingUser*/
+/**Gets the user's permissions (and group priority, if applicable) and attaches them to req.requestingUser*/
 const getPermissions = async (req, res, next) => {
-  const userGroup = await db.group.findByPk(req.requestingUser.dataValues.groupId);
+  const userGroup = !((req.requestingUser.dataValues.groupExpiration ?? undefined) <= new Date()) ?
+  await db.group.findByPk(req.requestingUser.dataValues.groupId)
+  : undefined;
+  req.requestingUser.dataValues.groupPriority = userGroup?.priority;
   
   // Get user's permissions
   const permissions = new Set([
@@ -69,9 +72,9 @@ const getPermissions = async (req, res, next) => {
   ]);
 
   // If user does not have any permissions, exit early (commented for testing other things)
-  // if (permissions.size <= 0) return res.status(401).send({
-  //   message: "Unauthorized! User does not have any permissions.",
-  // });
+  if (permissions.size <= 0) return res.status(401).send({
+    message: "Unauthorized! User does not have any permissions.",
+  });
 
   req.requestingUser.dataValues.permissions = [...permissions.values()];
   next();
@@ -159,9 +162,9 @@ const checkHasPermission = (req, name, permType) => {
         break;
     };
   }
-  else type = permType;
+  else type = permType.trim().replace(/\s+/, "\\s*");
 
-  name = name.trim().replace(/\s/, "\\s*");
+  name = name.trim().replace(/\s+/, "\\s*");
   const regex = new RegExp(`(${type}[\\s\\S]*${name})|(${name}[\\s\\S]*${type})`, "i");
   return !!permissions?.find(permission => permission?.name?.match(regex)?.length > 0);
 };
@@ -348,9 +351,51 @@ const checkDeleteVendor = async (req, res, next) => {
 };
 //#endregion
 
-// Still need to do user permissions
+//#region User Permissions
+/**Denies the user if they don't have permission to create users out of people*/
+const checkCreateUser = async (req, res, next) => {
+  if (checkHasPermission(req, "User", PermTypes.CREATE)) next();
+  else res.status(401).send({
+    message: "Unauthorized! User does not have permission to create users.",
+  });
+};
 
-// Revisit group permissions to alter a few things since not everything lines up
+/**Denies the user if they don't have permission to view users*/
+const checkViewUser = async (req, res, next) => {
+  if (checkHasPermission(req, "User", PermTypes.VIEW)) next();
+  else res.status(401).send({
+    message: "Unauthorized! User does not have permission to view users.",
+  });
+};
+
+/**Denies the user if they don't have any permissions to edit users, otherwise determines what they can do*/
+const getEditUserPerms = async (req, res, next) => {
+  const editPerms = {
+    block: checkHasPermission(req, "User", "Block"),
+    superAssign: checkHasPermission(req, "Group", "Super Assign"),
+    superPermit: checkHasPermission(req, "User Permission", "Super Change"),
+  };
+  editPerms.assign = editPerms.superAssign || checkHasPermission(req, "Group", "Assign");
+  editPerms.permit = editPerms.superPermit || checkHasPermission(req, "User Permission", "Change");
+
+  req.requestingUser.dataValues.editUserPerms = editPerms;
+
+  if (Object.values(editPerms).reduce((prev, curr) => prev ||= curr, false)) next();
+  else res.status(401).send({
+    message: "Unauthorized! User does not have permission to edit users.",
+  });
+};
+
+/**Denies the user if they don't have permission to remove users, otherwise determines if they have normal or super permission*/
+const checkRemoveUser = async (req, res, next) => {
+  req.requestingUser.dataValues.superRemove = checkHasPermission(req, "User", "Super Remove");
+
+  if (req.requestingUser.dataValues.superRemove || checkHasPermission(req, "User", "Remove")) next();
+  else res.status(401).send({
+    message: "Unauthorized! User does not have permission to remove users.",
+  });
+};
+//#endregion
 
 // Load up object to export
 module.exports = {
@@ -381,4 +426,8 @@ module.exports = {
   checkCreateVendor,
   checkEditVendor,
   checkDeleteVendor,
+  checkCreateUser,
+  checkViewUser,
+  getEditUserPerms,
+  checkRemoveUser,
 };

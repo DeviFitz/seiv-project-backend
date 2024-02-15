@@ -59,8 +59,9 @@ if (process.env.NODE_ENV !== "test") {
 /**Creates the defaults for the database*/
 const determineDefaults = async () => {
   // Wait until database has been synced
-  await startup;
-  console.log("Database synced!")
+  await startup
+  .then(data => console.log("Database synced!"))
+  .catch(err => console.log("Error syncing database!"));
 
   /**Sets the defaults related to permissions*/
   const permissionDefaults = async () => {
@@ -201,12 +202,12 @@ const determineDefaults = async () => {
     ];
   
     // Make sure the default permissions exist
-    await Promise.all(defaultPermissions.map(async (def) => (await db.permission.findOrCreate({
+    defaultPermissions.forEach(async (def) => await db.permission.findOrCreate({
       where: {
         name: def.name
       },
       defaults: def,
-    }))?.[0]));
+    }));
   };
   
   /**Creates the default categories*/
@@ -262,6 +263,7 @@ determineDefaults()
 })
 .catch(error => {
   console.log("Error handling defaults!");
+  console.log(error)
 });
 
 module.exports = app;

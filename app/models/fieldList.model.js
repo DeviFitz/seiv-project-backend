@@ -8,7 +8,14 @@ module.exports = (sequelize, Sequelize) => {
     name: {
       type: Sequelize.STRING(50),
       allowNull: false,
-      unique: true,
     },
+  },
+  {
+    indexes: [
+      {
+        unique: true,
+        fields: ["name"],
+      },
+    ],
   });
 };

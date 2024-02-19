@@ -371,10 +371,11 @@ const checkViewUser = async (req, res, next) => {
 /**Denies the user if they don't have any permissions to edit users, otherwise determines what they can do*/
 const getEditUserPerms = async (req, res, next) => {
   const editPerms = {
-    block: checkHasPermission(req, "User", "Block"),
+    superBlock: checkHasPermission(req, "User", "Super Block"),
     superAssign: checkHasPermission(req, "Group", "Super Assign"),
     superPermit: checkHasPermission(req, "User Permission", "Super Change"),
   };
+  editPerms.block = editPerms.superBlock || checkHasPermission(req, "User", "Block");
   editPerms.assign = editPerms.superAssign || checkHasPermission(req, "Group", "Assign");
   editPerms.permit = editPerms.superPermit || checkHasPermission(req, "User Permission", "Change");
 

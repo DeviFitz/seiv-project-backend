@@ -73,7 +73,7 @@ const determineDefaults = async () => {
       },
       {
         name: "Block User",
-        description: "Gives permission to block or unblock users.",
+        description: "Gives permission to block or unblock users in lower-priority groups.",
       },
       {
         name: "Change User Permissions",
@@ -186,6 +186,10 @@ const determineDefaults = async () => {
       {
         name: "Super Assign Group",
         description: "Gives permission to assign users in equal or lower priorities to groups.",
+      },
+      {
+        name: "Super Block User",
+        description: "Gives permission to block or unblock users in equal- or lower-priority groups.",
       },
       {
         name: "Super Change User Permissions",

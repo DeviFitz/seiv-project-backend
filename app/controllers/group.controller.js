@@ -5,11 +5,16 @@ const Group = db.group;
 exports.create = (req, res) => {
   // Validate request
   if (!req.body.name) {
-    res.status(400).send({
+    return res.status(400).send({
       message: "Content cannot be empty!",
     });
-    return;
   }
+  else if (!!req.body.priority && req.body.priority <= 0)
+  {
+    return res.status(400).send({
+      message: "Cannot create a group of priority 0 or less as it is reserved for super users.",
+    });
+  };
 
   // Create an Group
   const group = {

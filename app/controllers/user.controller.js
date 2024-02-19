@@ -76,20 +76,42 @@ exports.findOne = (req, res) => {
 };
 
 // Update a User by the id in the request
-exports.update = (req, res) => {
+exports.update = async (req, res) => {
   const id = req.params.id;
+  const editPerms = req.requestingUser.dataValues.editUserPerms;
+  /*
+  req.requestingUser.dataValues.editUserPerms = {
+    superBlock: bool,
+    block: bool,
+    superAssign: bool,
+    assign: bool,
+    superPermit: bool,
+    permit: bool,
+  }
+  */
+
+  // Make sure the target exists and matches the constraints
+  const target = await User.findByPk(id, {
+    include: [{
+      model: db.group,
+      as: "group",
+      attributes: ['priority'],
+    }],
+  });
+
+  if (!target) return res.send({
+    message: `Cannot update User with id=${id}. Maybe User was not found or req.body is empty!`,
+  });
+
+  // Check to make sure that user can be edited based on their priority and the requestor's permissions
 
   User.update(req.body, {
     where: { id },
   })
   .then((num) => {
-    if (num == 1) {
+    if (num > 0) {
       res.send({
         message: "User was updated successfully.",
-      });
-    } else {
-      res.send({
-        message: `Cannot update User with id=${id}. Maybe User was not found or req.body is empty!`,
       });
     }
   })

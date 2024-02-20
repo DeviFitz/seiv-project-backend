@@ -6,7 +6,7 @@ module.exports = (sequelize, Sequelize) => {
       primaryKey: true,
     },
     token: {
-      type: Sequelize.STRING(3000),
+      type: Sequelize.STRING(300),
     },
     email: {
       type: Sequelize.STRING,
@@ -17,14 +17,15 @@ module.exports = (sequelize, Sequelize) => {
       allowNull: false,
     },
   },
-  {
-    indexes: [
-      {
-        unique: true,
-        fields: ["token"],
-      },
-    ],
-  });
+  // {
+  //   indexes: [
+  //     {
+  //       unique: true,
+  //       fields: ["token"],
+  //     },
+  //   ],
+  // }
+  );
 
   return Session;
 };

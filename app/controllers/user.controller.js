@@ -1,6 +1,5 @@
 const db = require("../models");
 const User = db.user;
-const Op = db.Sequelize.Op;
 
 // Create and Save a new User
 exports.create = async (req, res) => {
@@ -78,19 +77,7 @@ exports.findOne = (req, res) => {
 // Update a User by the id in the request
 exports.update = async (req, res) => {
   const id = req.params.id;
-  const editPerms = req.requestingUser.dataValues.editUserPerms;
-  /*
-  req.requestingUser.dataValues.editUserPerms = {
-    superBlock: bool,
-    block: bool,
-    superAssign: bool,
-    assign: bool,
-    superPermit: bool,
-    permit: bool,
-  }
-  */
 
-  // Make sure the target exists and matches the constraints
   const target = await User.findByPk(id, {
     include: [{
       model: db.group,
@@ -103,17 +90,85 @@ exports.update = async (req, res) => {
     message: `Cannot update User with id=${id}. Maybe User was not found or req.body is empty!`,
   });
 
-  // Check to make sure that user can be edited based on their priority and the requestor's permissions
+  const targetPrio = target.dataValues?.group?.dataValues?.priority;
+  const reqPrio = req.requestingUser.dataValues.groupPriority;
+  const subEdit = reqPrio != undefined && (targetPrio == undefined || (targetPrio != undefined && targetPrio > reqPrio));
+  // const sameEdit = (reqPrio == targetPrio) || subEdit;
 
-  User.update(req.body, {
-    where: { id },
-  })
-  .then((num) => {
-    if (num > 0) {
-      res.send({
-        message: "User was updated successfully.",
+  if (!subEdit && (reqPrio != targetPrio)) return res.status(401).send({
+    message: "Unauthorized! Cannot update user with higher priority.",
+  });
+
+  const editPerms = req.requestingUser.dataValues.editUserPerms;
+  /*
+  editPerms = {
+    superBlock: bool,
+    block: bool,
+    superAssign: bool,
+    assign: bool,
+    superPermit: bool,
+    permit: bool,
+  }
+  */
+  const params = {
+    blocked: req.body.blocked,
+    groupExpiration: req.body.groupExpiration,
+    groupId: req.body.groupId,
+  };
+
+  // Check to make sure that user can be edited based on their priority and the requestor's permissions
+  if (params.blocked != undefined && params.blocked != null && params.blocked != target.dataValues.blocked)
+  {
+    if (editPerms.superBlock || (editPerms.block && subEdit))
+      target.blocked = params.blocked;
+    else if (editPerms.block) return res.status(401).send({
+      message: "Unauthorized! User does not have permission to block or unblock users of equal priority.",
+    });
+    else return res.status(401).send({
+      message: "Unauthorized! User does not have permission to block or unblock users.",
+    });
+  }
+
+  if (params.groupExpiration != undefined && params.groupExpiration != target.dataValues.groupExpiration)
+  {
+    if (editPerms.superAssign || (editPerms.assign && subEdit))
+      target.groupExpiration = params.groupExpiration;
+    else if (editPerms.assign) return res.status(401).send({
+      message: "Unauthorized! User does not have permission to assign users of equal priority to groups.",
+    });
+    else return res.status(401).send({
+      message: "Unauthorized! User does not have permission to assign users to groups.",
+    });
+  }
+
+  if (params.groupId != undefined && params.groupId != target.dataValues.groupId)
+  {
+    if (editPerms.superAssign || (editPerms.assign && subEdit))
+    {
+      const group = (await db.group.findByPk(target.groupId, { attributes: ['priority', 'expiration'] }))?.get({ plain: true });
+
+      if (!!group && group.priority <= params.groupId)
+      {
+        target.groupId = params.groupId;
+        if (params.groupExpiration != undefined) target.groupExpiration = group.expiration;
+      }
+      else return res.send({
+        message: "User can only assign other users to lower- or equal-priority groups.",
       });
     }
+    else if (editPerms.assign) return res.status(401).send({
+      message: "Unauthorized! User does not have permission to assign users of equal priority to groups.",
+    });
+    else return res.status(401).send({
+      message: "Unauthorized! User does not have permission to assign users to groups.",
+    });
+  }
+
+  target.save()
+  .then((data) => {
+    res.send({
+      message: "User was updated successfully.",
+    });
   })
   .catch((err) => {
     res.status(500).send({

@@ -83,11 +83,11 @@ const getPermissions = async (req, res, next) => {
 //#region Under Categories\
 /**Gets the ids of categories that the user has permission to view under*/
 const getViewableCategories = async (req, res, next) => {
-  req.requestingUser.dataValues.viewableCategories = new Set(req.requestingUser.dataValues.permissions
+  req.requestingUser.dataValues.viewableCategories = [...new Set(req.requestingUser.dataValues.permissions
   .filter(permission => !!permission.categoryId && permission.name.match(/View/i)?.length > 0)
-  .map(permission => permission.categoryId));
+  .map(permission => permission.categoryId))];
 
-  if (req.requestingUser.dataValues.viewableCategories.size > 0) next();
+  if (req.requestingUser.dataValues.viewableCategories.length > 0) next();
   else res.status(401).send({
     message: "Unauthorized! User does not have permission to view data under any categories.",
   });
@@ -95,11 +95,11 @@ const getViewableCategories = async (req, res, next) => {
 
 /**Gets the ids of categories that the user has permission to edit under*/
 const getEditableCategories = async (req, res, next) => {
-  req.requestingUser.dataValues.editableCategories = new Set(req.requestingUser.dataValues.permissions
+  req.requestingUser.dataValues.editableCategories = [...new Set(req.requestingUser.dataValues.permissions
   .filter(permission => !!permission.categoryId && permission.name.match(/Edit/i)?.length > 0)
-  .map(permission => permission.categoryId));
+  .map(permission => permission.categoryId))];
 
-  if (req.requestingUser.dataValues.editableCategories.size > 0) next();
+  if (req.requestingUser.dataValues.editableCategories.length > 0) next();
   else res.status(401).send({
     message: "Unauthorized! User does not have permission to edit data under any categories.",
   });
@@ -107,11 +107,11 @@ const getEditableCategories = async (req, res, next) => {
 
 /**Gets the ids of categories that the user has permission to create under*/
 const getCreatableCategories = async (req, res, next) => {
-  req.requestingUser.dataValues.creatableCategories = new Set(req.requestingUser.dataValues.permissions
+  req.requestingUser.dataValues.creatableCategories = [...new Set(req.requestingUser.dataValues.permissions
   .filter(permission => !!permission.categoryId && permission.name.match(/Create/i)?.length > 0)
-  .map(permission => permission.categoryId));
+  .map(permission => permission.categoryId))];
 
-  if (req.requestingUser.dataValues.creatableCategories.size > 0) next();
+  if (req.requestingUser.dataValues.creatableCategories.length > 0) next();
   else res.status(401).send({
     message: "Unauthorized! User does not have permission to create data under any categories.",
   });
@@ -119,11 +119,11 @@ const getCreatableCategories = async (req, res, next) => {
 
 /**Gets the ids of categories that the user has permission to delete under*/
 const getDeletableCategories = async (req, res, next) => {
-  req.requestingUser.dataValues.deletableCategories = new Set(req.requestingUser.dataValues.permissions
+  req.requestingUser.dataValues.deletableCategories = [...new Set(req.requestingUser.dataValues.permissions
   .filter(permission => !!permission.categoryId && permission.name.match(/Delete/i)?.length > 0)
-  .map(permission => permission.categoryId));
+  .map(permission => permission.categoryId))];
 
-  if (req.requestingUser.dataValues.deletableCategories.size > 0) next();
+  if (req.requestingUser.dataValues.deletableCategories.length > 0) next();
   else res.status(401).send({
     message: "Unauthorized! User does not have permission to delete data under any categories.",
   });

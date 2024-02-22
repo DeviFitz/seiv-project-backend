@@ -6,6 +6,7 @@ module.exports = (app) => {
         getCreatableCategories,
         getEditableCategories,
         getViewableCategories,
+        getDeletableCategories,
         checkCreateTemplate,
         checkEditTemplate,
         checkDeleteTemplate,
@@ -13,7 +14,7 @@ module.exports = (app) => {
     const router = require("express").Router();
   
     // Create a new AssetTemplate
-    router.post("/", [authenticate, getPermissions, getCreatableCategories, checkCreateTemplate], assetTemplate.create);
+    router.post("/", [authenticate, getPermissions, checkCreateTemplate, getCreatableCategories], assetTemplate.create);
   
     // Retrieve all AssetTemplates
     router.get("/", [authenticate, getPermissions, getViewableCategories], assetTemplate.findAll);
@@ -22,10 +23,10 @@ module.exports = (app) => {
     router.get("/:id", [authenticate, getPermissions, getViewableCategories], assetTemplate.findOne);
   
     // Update an AssetTemplate with id
-    router.put("/:id", [authenticate, getPermissions, getEditableCategories, checkEditTemplate], assetTemplate.update);
+    router.put("/:id", [authenticate, getPermissions, checkEditTemplate, getEditableCategories], assetTemplate.update);
   
     // Delete an AssetTemplate with id
-    router.delete("/:id", [authenticate, getPermissions, getEditableCategories, checkDeleteTemplate], assetTemplate.delete);
+    router.delete("/:id", [authenticate, getPermissions, checkDeleteTemplate, getDeletableCategories], assetTemplate.delete);
   
     app.use("/asset-t3/asset-templates", router);
 };

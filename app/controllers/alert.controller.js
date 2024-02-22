@@ -23,17 +23,17 @@ exports.create = async (req, res) => {
   };
 
   const type = await db.asset.findByPk(alert.assetId, {
-    attributes: ['typeId'],
+    attributes: [],
     include: {
       model: db.assetType,
       as: "type",
-      attributes: ['id'],
-      where: { id: req.requestingUser.dataValues.viewableCategories },
+      attributes: [],
+      where: { categoryId: req.requestingUser.dataValues.editableCategories },
       required: true,
-    }
+    },
   });
 
-  if (!type) return res.status(404).send({
+  if (!type) return res.status(400).send({
     message: "Error creating alert! Maybe user is unauthorized.",
   });
 
@@ -55,16 +55,16 @@ exports.findAll = (req, res) => {
     include: {
       model: db.asset,
       as: "asset",
-      attributes: ['typeId'],
+      attributes: [],
+      required: true,
       include: {
         model: db.assetType,
         as: "type",
-        attributes: ['id'],
-        where: { id: req.requestingUser.dataValues.viewableCategories },
+        attributes: [],
         required: true,
+        where: { categoryId: req.requestingUser.dataValues.viewableCategories },
       },
-      required: true,
-    }
+    },
   })
   .then((data) => {
     res.send(data);
@@ -84,15 +84,15 @@ exports.findOne = (req, res) => {
     include: {
       model: db.asset,
       as: "asset",
-      attributes: ['typeId'],
+      attributes: [],
+      required: true,
       include: {
         model: db.assetType,
         as: "type",
-        attributes: ['id'],
-        where: { id: req.requestingUser.dataValues.viewableCategories },
+        attributes: [],
         required: true,
+        where: { categoryId: req.requestingUser.dataValues.viewableCategories },
       },
-      required: true,
     }
   })
   .then((data) => {
@@ -120,12 +120,12 @@ exports.update = async (req, res) => {
     include: {
       model: db.asset,
       as: "asset",
-      attributes: ['typeId'],
+      attributes: [],
       include: {
         model: db.assetType,
         as: "type",
-        attributes: ['id'],
-        where: { id: req.requestingUser.dataValues.editableCategories },
+        attributes: [],
+        where: { categoryId: req.requestingUser.dataValues.editableCategories },
         required: true,
       },
       required: true,
@@ -150,25 +150,32 @@ exports.update = async (req, res) => {
 };
 
 // Delete an Alert with the specified id in the request
-exports.delete = (req, res) => {
+exports.delete = async (req, res) => {
   const id = req.params.id;
-
-  Alert.destroy({
-    where: { id },
+  const type = await Alert.findByPk(id, {
+    attributes: [],
     include: {
       model: db.asset,
       as: "asset",
-      attributes: ['typeId'],
+      attributes: [],
+      raw: true,
+      required: true,
       include: {
         model: db.assetType,
         as: "type",
-        attributes: ['id'],
-        where: { id: req.requestingUser.dataValues.deletableCategories },
+        attributes: [],
+        where: { categoryId: req.requestingUser.dataValues.deletableCategories },
         required: true,
+        raw: true,
       },
-      required: true,
-    }
-  })
+    },
+  });
+
+  if (!type) return res.status(404).send({
+    message: "Error deleting alert! Maybe alert was not found or user is unauthorized.",
+  });
+
+  Alert.destroy({ where: { id } })
   .then((num) => {
     if (num > 0) {
       res.send({
@@ -176,11 +183,12 @@ exports.delete = (req, res) => {
       });
     } else {
       res.send({
-        message: `Cannot delete alert with id=${id}. Maybe alert was not found or user was unauthorized!`,
+        message: `Cannot delete alert with id=${id}. Maybe alert was not found or user is unauthorized!`,
       });
     }
   })
   .catch((err) => {
+    console.log(err)
     res.status(500).send({
       message: "Could not delete alert with id=" + id,
     });

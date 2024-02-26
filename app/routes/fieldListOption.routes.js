@@ -1,10 +1,15 @@
 module.exports = (app) => {
     const fieldListOption = require("../controllers/fieldListOption.controller.js");
-    const { authenticate } = require("../authorization/authorization.js");
-    let router = require("express").Router();
+    const {
+        authenticate,
+        getPermissions,
+        checkEditFieldList,
+        checkDeleteFieldList,
+    } = require("../authorization/authorization.js");
+    const router = require("express").Router();
   
     // Create a new FieldListOption
-    router.post("/", [authenticate], fieldListOption.create);
+    router.post("/", [authenticate, getPermissions, checkEditFieldList], fieldListOption.create);
   
     // Retrieve all FieldListOptions
     router.get("/", [authenticate], fieldListOption.findAll);
@@ -13,10 +18,10 @@ module.exports = (app) => {
     router.get("/:id", [authenticate], fieldListOption.findOne);
   
     // Update a FieldListOption with id
-    router.put("/:id", [authenticate], fieldListOption.update);
+    router.put("/:id", [authenticate, getPermissions, checkEditFieldList], fieldListOption.update);
   
     // Delete a FieldListOption with id
-    router.delete("/:id", [authenticate], fieldListOption.delete);
+    router.delete("/:id", [authenticate, getPermissions, checkDeleteFieldList], fieldListOption.delete);
   
     app.use("/asset-t3/field-list-options", router);
 };

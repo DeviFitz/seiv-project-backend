@@ -1,10 +1,16 @@
 module.exports = (app) => {
     const room = require("../controllers/room.controller.js");
-    const { authenticate } = require("../authorization/authorization.js");
-    let router = require("express").Router();
+    const {
+        authenticate,
+        getPermissions,
+        getCreatableCategories,
+        getEditableCategories,
+        getDeletableCategories,
+    } = require("../authorization/authorization.js");
+    const router = require("express").Router();
   
     // Create a new Room
-    router.post("/", [authenticate], room.create);
+    router.post("/", [authenticate, getPermissions, getCreatableCategories], room.create);
   
     // Retrieve all Rooms
     router.get("/", [authenticate], room.findAll);
@@ -13,10 +19,10 @@ module.exports = (app) => {
     router.get("/:id", [authenticate], room.findOne);
   
     // Update a Room with id
-    router.put("/:id", [authenticate], room.update);
+    router.put("/:id", [authenticate, getPermissions, getEditableCategories], room.update);
   
     // Delete a Room with id
-    router.delete("/:id", [authenticate], room.delete);
+    router.delete("/:id", [authenticate, getPermissions, getDeletableCategories], room.delete);
   
     app.use("/asset-t3/rooms", router);
 };

@@ -43,22 +43,31 @@ exports.login = async (req, res) => {
   // Find or create the person
   const person = (await Person.findOrCreate({
     where: { email },
+    attributes: ["id", "fName", "lName", "email"],
     defaults: {
       fName,
       lName,
       email
     }
-  }))?.[0]?.dataValues;
+  }))?.[0]?.get({ plain: true });
 
   if (!person) return res.status(500).send({ message: "Error finding user in database!" });
 
+  // Create a user for the person if they don't have one, or just get their current one if available
+  person.user = (await User.findOrCreate({
+    where: { personId: person.id },
+    attributes: ["id", "groupId", "groupExpiration", "blocked"],
+    defaults: { personId: person.id }
+  }))?.[0]?.get({ plain: true });
+  
+  // Make sure that user could be registered if they haven't been already
+  if (!person.user) return res.status(500).send({ message: "Error registering person as user!" });
+  // If user is blocked, don't let them change anything
+  else if (person.user.blocked) return res.status(401).send({ message: "Unauthorized! User is blocked." });
+  
+  // Update the person's name in the database if necessary
   if (person.fName !== fName || person.lName !== lName) await Person.update(person, { where: { id: person.id } })
   .catch((err) => { console.log("Error updating user's name to match!"); });
-
-  // Create a user for the person if they don't have one, or just get their current one if available
-  person.user = (await User.findOrCreate({ where: { personId: person.id }, defaults: { personId: person.id } }))?.[0]?.dataValues;
-  
-  if (!person.user) return res.status(500).send({ message: "Error registering person as user!" });
 
   // New expiration date if needed
   const sessionExpirationDate = new Date();
@@ -72,14 +81,14 @@ exports.login = async (req, res) => {
     session = (await Session.findOrCreate({
       where: {
         email,
-        userId: person.id,
+        userId: person.user.id,
         token: { [Op.ne]: "" },
       },
       defaults: {
         token: jwt.sign({ id: email }, authconfig.secret, { expiresIn: 86400 }),
         email,
         expirationDate: sessionExpirationDate,
-        userId: person.id,
+        userId: person.user.id,
       }
     }))?.[0]?.dataValues;
 
@@ -110,8 +119,7 @@ exports.login = async (req, res) => {
     userId: person.user.id,
     token: session.token,
   };
-
-  console.log("Logged in user " + person.user.id);
+  
   return res.send(response);
 };
 
@@ -157,7 +165,7 @@ exports.login = async (req, res) => {
 exports.logout = async (req, res) => {
   if (!req.body) return res.send({ message: "User has already been successfully logged out!" });
   
-  await Session.update({ token: "" }, { where: { token: req.body.token } })
+  await Session.update({ token: null }, { where: { token: req.body.token } })
   .then((data) => {
     res.send({ message: "Successfully logged out!" });
   })

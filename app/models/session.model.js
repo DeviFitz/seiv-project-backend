@@ -7,7 +7,6 @@ module.exports = (sequelize, Sequelize) => {
     },
     token: {
       type: Sequelize.STRING(3000),
-      allowNull: false,
     },
     email: {
       type: Sequelize.STRING,
@@ -17,7 +16,16 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.DATE,
       allowNull: false,
     },
-  });
+  },
+  // {
+  //   indexes: [
+  //     {
+  //       unique: true,
+  //       fields: ["token"],
+  //     },
+  //   ],
+  // }
+  );
 
   return Session;
 };

@@ -1,22 +1,28 @@
 module.exports = (app) => {
     const assetField = require("../controllers/assetField.controller.js");
-    const { authenticate } = require("../authorization/authorization.js");
-    let router = require("express").Router();
+    const {
+        authenticate,
+        getPermissions,
+        getEditableCategories,
+        getViewableCategories,
+        checkEditAssetType,
+    } = require("../authorization/authorization.js");
+    const router = require("express").Router();
   
     // Create a new AssetField
-    router.post("/", [authenticate], assetField.create);
+    router.post("/", [authenticate, getPermissions, checkEditAssetType, getEditableCategories], assetField.create);
   
     // Retrieve all AssetFields
-    router.get("/", [authenticate], assetField.findAll);
+    router.get("/", [authenticate, getPermissions, getViewableCategories], assetField.findAll);
   
     // Retrieve a single AssetField with id
-    router.get("/:id", [authenticate], assetField.findOne);
+    router.get("/:id", [authenticate, getPermissions, getViewableCategories], assetField.findOne);
   
     // Update an AssetField with id
-    router.put("/:id", [authenticate], assetField.update);
+    router.put("/:id", [authenticate, getPermissions, checkEditAssetType, getEditableCategories], assetField.update);
   
     // Delete an AssetField with id
-    router.delete("/:id", [authenticate], assetField.delete);
+    router.delete("/:id", [authenticate, getPermissions, checkEditAssetType, getEditableCategories], assetField.delete);
   
     app.use("/asset-t3/asset-fields", router);
 };

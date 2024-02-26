@@ -1,22 +1,28 @@
 module.exports = (app) => {
     const alert = require("../controllers/alert.controller.js");
-    const { authenticate } = require("../authorization/authorization.js");
-    let router = require("express").Router();
+    const {
+        authenticate,
+        getPermissions,
+        getEditableCategories,
+        getViewableCategories,
+        getDeletableCategories,
+    } = require("../authorization/authorization.js");
+    const router = require("express").Router();
   
     // Create a new Alert
-    router.post("/", [authenticate], alert.create);
+    router.post("/", [authenticate, getPermissions, getEditableCategories], alert.create);
   
     // Retrieve all Alerts
-    router.get("/", [authenticate], alert.findAll);
+    router.get("/", [authenticate, getPermissions, getViewableCategories], alert.findAll);
   
     // Retrieve a single Alert with id
-    router.get("/:id", [authenticate], alert.findOne);
+    router.get("/:id", [authenticate, getPermissions, getViewableCategories], alert.findOne);
   
     // Update an Alert with id
-    router.put("/:id", [authenticate], alert.update);
+    router.put("/:id", [authenticate, getPermissions, getEditableCategories], alert.update);
   
     // Delete an Alert with id
-    router.delete("/:id", [authenticate], alert.delete);
+    router.delete("/:id", [authenticate, getPermissions, getDeletableCategories], alert.delete);
   
     app.use("/asset-t3/alerts", router);
 };

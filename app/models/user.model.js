@@ -8,6 +8,11 @@ module.exports = (sequelize, Sequelize) => {
     groupExpiration: {
       type: Sequelize.DATE,
     },
+    blocked: {
+      type: Sequelize.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    }
   });
 
   // Foreign keys:

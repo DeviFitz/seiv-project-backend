@@ -1,10 +1,10 @@
 module.exports = (app) => {
     const person = require("../controllers/person.controller.js");
     const { authenticate } = require("../authorization/authorization.js");
-    let router = require("express").Router();
+    const router = require("express").Router();
   
     // Create a new Person
-    router.post("/", [authenticate], person.create);
+    //router.post("/", [authenticate], person.create);
   
     // Retrieve all Persons
     router.get("/", [authenticate], person.findAll);
@@ -13,10 +13,10 @@ module.exports = (app) => {
     router.get("/:id", [authenticate], person.findOne);
   
     // Update a Person with id
-    router.put("/:id", [authenticate], person.update);
+    //router.put("/:id", [authenticate], person.update);
   
     // Delete a Person with id
-    router.delete("/:id", [authenticate], person.delete);
+    //router.delete("/:id", [authenticate], person.delete);
   
     app.use("/asset-t3/people", router);
 };

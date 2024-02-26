@@ -7,6 +7,7 @@ module.exports = (sequelize, Sequelize) => {
       },
       value: {
         type: Sequelize.STRING(500),
+        defaultValue: "<Empty Field>",
       },
     });
 

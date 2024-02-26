@@ -68,51 +68,51 @@ exports.findOne = (req, res) => {
 };
 
 // Update a Person by the id in the request
-exports.update = (req, res) => {
-  const id = req.params.id;
+// exports.update = (req, res) => {
+//   const id = req.params.id;
 
-  Person.update(req.body, {
-    where: { id: id },
-  })
-    .then((num) => {
-      if (num == 1) {
-        res.send({
-          message: "Person was updated successfully.",
-        });
-      } else {
-        res.send({
-          message: `Cannot update person with id=${id}. Maybe person was not found or req.body is empty!`,
-        });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Error updating person with id=" + id,
-      });
-    });
-};
+//   Person.update(req.body, {
+//     where: { id: id },
+//   })
+//   .then((num) => {
+//     if (num == 1) {
+//       res.send({
+//         message: "Person was updated successfully.",
+//       });
+//     } else {
+//       res.send({
+//         message: `Cannot update person with id=${id}. Maybe person was not found or req.body is empty!`,
+//       });
+//     }
+//   })
+//   .catch((err) => {
+//     res.status(500).send({
+//       message: "Error updating person with id=" + id,
+//     });
+//   });
+// };
 
 // Delete a Person with the specified id in the request
-exports.delete = (req, res) => {
-  const id = req.params.id;
+// exports.delete = (req, res) => {
+//   const id = req.params.id;
 
-  Person.destroy({
-    where: { id: id },
-  })
-    .then((num) => {
-      if (num == 1) {
-        res.send({
-          message: "Person was deleted successfully!",
-        });
-      } else {
-        res.send({
-          message: `Cannot delete person with id=${id}. Maybe person was not found!`,
-        });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Could not delete person with id=" + id,
-      });
-    });
-};
+//   Person.destroy({
+//     where: { id },
+//   })
+//   .then((num) => {
+//     if (num == 1) {
+//       res.send({
+//         message: "Person was deleted successfully!",
+//       });
+//     } else {
+//       res.send({
+//         message: `Cannot delete person with id=${id}. Maybe person was not found!`,
+//       });
+//     }
+//   })
+//   .catch((err) => {
+//     res.status(500).send({
+//       message: "Could not delete person with id=" + id,
+//     });
+//   });
+// };

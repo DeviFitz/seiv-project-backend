@@ -1,10 +1,16 @@
 module.exports = (app) => {
     const group = require("../controllers/group.controller.js");
-    const { authenticate } = require("../authorization/authorization.js");
-    let router = require("express").Router();
+    const {
+        authenticate,
+        getPermissions,
+        checkCreateGroup,
+        checkEditGroup,
+        checkDeleteGroup,
+    } = require("../authorization/authorization.js");
+    const router = require("express").Router();
   
     // Create a new Group
-    router.post("/", [authenticate], group.create);
+    router.post("/", [authenticate, getPermissions, checkCreateGroup], group.create);
   
     // Retrieve all Groups
     router.get("/", [authenticate], group.findAll);
@@ -13,10 +19,10 @@ module.exports = (app) => {
     router.get("/:id", [authenticate], group.findOne);
   
     // Update a Group with id
-    router.put("/:id", [authenticate], group.update);
+    router.put("/:id", [authenticate, getPermissions, checkEditGroup], group.update);
   
     // Delete a Group with id
-    router.delete("/:id", [authenticate], group.delete);
+    router.delete("/:id", [authenticate, getPermissions, checkDeleteGroup], group.delete);
   
     app.use("/asset-t3/groups", router);
 };

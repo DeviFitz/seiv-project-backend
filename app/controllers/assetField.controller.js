@@ -27,7 +27,7 @@ exports.create = async (req, res) => {
   };
 
   const type = await db.assetType.findByPk(assetField.assetTypeId, {
-    as: "type",
+    as: "assetType",
     attributes: [],
     where: { categoryId: req.requestingUser.dataValues.editableCategories },
     required: true,
@@ -54,7 +54,7 @@ exports.findAll = (req, res) => {
   AssetField.findAll({
     include: {
       model: db.assetType,
-      as: "type",
+      as: "assetType",
       attributes: [],
       required: true,
       where: { categoryId: req.requestingUser.dataValues.viewableCategories },
@@ -77,7 +77,7 @@ exports.findOne = (req, res) => {
   AssetField.findByPk(id, {
     include: {
       model: db.assetType,
-      as: "type",
+      as: "assetType",
       attributes: [],
       required: true,
       where: { categoryId: req.requestingUser.dataValues.viewableCategories },
@@ -107,7 +107,7 @@ exports.update = (req, res) => {
     where: { id },
     include: {
       model: db.assetType,
-      as: "type",
+      as: "assetType",
       attributes: [],
       required: true,
       where: { categoryId: req.requestingUser.dataValues.editableCategories },
@@ -138,7 +138,7 @@ exports.delete = async (req, res) => {
     attributes: [],
     include: {
       model: db.assetType,
-      as: "type",
+      as: "assetType",
       attributes: [],
       where: { categoryId: req.requestingUser.dataValues.deletableCategories },
       required: true,

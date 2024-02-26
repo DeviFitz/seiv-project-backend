@@ -41,7 +41,7 @@ exports.findAll = (req, res) => {
       required: true,
       include: {
         model: db.assetType,
-        as: "type",
+        as: "assetType",
         attributes: [],
         required: true,
         where: { categoryId: req.requestingUser.dataValues.viewableCategories },
@@ -70,7 +70,7 @@ exports.findOne = (req, res) => {
       required: true,
       include: {
         model: db.assetType,
-        as: "type",
+        as: "assetType",
         attributes: [],
         required: true,
         where: { categoryId: req.requestingUser.dataValues.viewableCategories },
@@ -106,7 +106,7 @@ exports.update = (req, res) => {
       required: true,
       include: {
         model: db.assetType,
-        as: "type",
+        as: "assetType",
         attributes: [],
         required: true,
         where: { categoryId: req.requestingUser.dataValues.editableCategories },

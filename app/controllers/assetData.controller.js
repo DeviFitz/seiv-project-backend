@@ -49,6 +49,7 @@ const AssetData = db.assetData;
 // Retrieve all AssetData from the database.
 exports.findAll = (req, res) => {
   AssetData.findAll({
+    ...req.paginator,
     include: {
       model: db.asset,
       as: "asset",

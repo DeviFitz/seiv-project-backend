@@ -67,6 +67,7 @@ exports.findOne = (req, res) => {
   const id = req.params.id;
 
   AssetTemplate.findByPk(id, {
+    ...req.paginator,
     include: {
       model: db.assetType,
       as: "assetType",

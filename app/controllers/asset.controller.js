@@ -50,6 +50,7 @@ exports.create = async (req, res) => {
 // Retrieve all Assets from the database.
 exports.findAll = (req, res) => {
   Asset.findAll({
+    ...req.paginator,
     include: {
       model: db.assetType,
       as: "type",

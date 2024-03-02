@@ -56,6 +56,7 @@ exports.create = async (req, res) => {
 // Retrieve all Logs from the database.
 exports.findAll = (req, res) => {
   Log.findAll({
+    ...req.paginator,
     include: {
       model: db.asset,
       as: "asset",

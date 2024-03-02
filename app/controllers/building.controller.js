@@ -47,7 +47,9 @@ exports.create = async (req, res) => {
 
 // Retrieve all Buildings from the database.
 exports.findAll = (req, res) => {
-  Building.findAll()
+  Building.findAll({
+    ...req.paginator,
+  })
   .then((data) => {
     res.send(data);
   })

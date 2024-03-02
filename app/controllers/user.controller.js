@@ -42,7 +42,9 @@ exports.create = async (req, res) => {
 
 // Retrieve all People from the database.
 exports.findAll = (req, res) => {
-  User.findAll()
+  User.findAll({
+    ...req.paginator,
+  })
   .then((data) => {
     res.send(data.map(user => user.get({ plain: true })));
   })

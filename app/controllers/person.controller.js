@@ -21,29 +21,29 @@ exports.create = (req, res) => {
 
   // Save Person in the database
   Person.create(person)
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: err.message || "Some error occurred while creating the person.",
-      });
+  .then((data) => {
+    res.send(data);
+  })
+  .catch((err) => {
+    res.status(500).send({
+      message: err.message || "Some error occurred while creating the person.",
     });
+  });
 };
 
 // Retrieve all People from the database.
 exports.findAll = (req, res) => {
-  const id = req.query.id;
-
-  Person.findAll({ where: {} })
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: err.message || "Some error occurred while retrieving people.",
-      });
+  Person.findAll({
+    ...req.paginator,
+  })
+  .then((data) => {
+    res.send(data);
+  })
+  .catch((err) => {
+    res.status(500).send({
+      message: err.message || "Some error occurred while retrieving people.",
     });
+  });
 };
 
 // Find a single Person with an id
@@ -51,20 +51,20 @@ exports.findOne = (req, res) => {
   const id = req.params.id;
 
   Person.findByPk(id)
-    .then((data) => {
-      if (data) {
-        res.send(data);
-      } else {
-        res.status(404).send({
-          message: `Cannot find person with id=${id}.`,
-        });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Error retrieving person with id=" + id,
+  .then((data) => {
+    if (data) {
+      res.send(data);
+    } else {
+      res.status(404).send({
+        message: `Cannot find person with id=${id}.`,
       });
+    }
+  })
+  .catch((err) => {
+    res.status(500).send({
+      message: "Error retrieving person with id=" + id,
     });
+  });
 };
 
 // Update a Person by the id in the request

@@ -52,6 +52,7 @@ exports.create = async (req, res) => {
 // Retrieve all Alerts from the database.
 exports.findAll = (req, res) => {
   Alert.findAll({
+    ...req.paginator,
     include: {
       model: db.asset,
       as: "asset",

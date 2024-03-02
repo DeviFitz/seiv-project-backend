@@ -75,6 +75,7 @@ exports.findOne = (req, res) => {
   const id = req.params.id;
 
   AssetField.findByPk(id, {
+    ...req.paginator,
     include: {
       model: db.assetType,
       as: "assetType",

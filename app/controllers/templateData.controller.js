@@ -34,6 +34,7 @@ exports.create = (req, res) => {
 // Retrieve all TemplateDatas from the database.
 exports.findAll = (req, res) => {
   TemplateData.findAll({
+    ...req.paginator,
     include: {
       model: db.assetTemplate,
       as: "template",

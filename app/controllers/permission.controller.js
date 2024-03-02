@@ -32,9 +32,11 @@ const Permission = db.permission;
 
 // Retrieve all Permissions from the database.
 exports.findAll = (req, res) => {
-  const id = req.query.id;
-
-  Permission.findAll()
+  Permission.findAll(
+    {
+      ...req.paginator,
+    }
+  )
   .then((data) => {
     res.send(data.map(permission => permission.get({ plain: true })));
   })

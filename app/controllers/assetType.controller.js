@@ -38,6 +38,7 @@ exports.create = (req, res) => {
 // Retrieve all AssetTypes from the database.
 exports.findAll = (req, res) => {
   AssetType.findAll({
+    ...req.paginator,
     where: { categoryId: req.requestingUser.dataValues.viewableCategories },
   })
   .then((data) => {

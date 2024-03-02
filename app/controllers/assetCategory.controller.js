@@ -56,9 +56,9 @@ exports.create = async (req, res) => {
 
 // Retrieve all AssetCategories from the database.
 exports.findAll = (req, res) => {
-  const id = req.query.id;
-
-  AssetCategory.findAll()
+  AssetCategory.findAll({
+    ...req.paginator,
+  })
   .then((data) => {
     res.send(data);
   })

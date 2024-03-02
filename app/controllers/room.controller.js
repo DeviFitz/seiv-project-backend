@@ -53,7 +53,9 @@ exports.create = async (req, res) => {
 
 // Retrieve all Rooms from the database.
 exports.findAll = (req, res) => {
-  Room.findAll()
+  Room.findAll({
+    ...req.paginator,
+  })
   .then((data) => {
     res.send(data);
   })

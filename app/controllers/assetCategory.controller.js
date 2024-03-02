@@ -178,4 +178,9 @@ exports.getPermissions = (categoryId, categoryName) => [
     description: `Gives permission to view permitted items under the "${categoryName}" asset category.`,
     categoryId,
   },
-]
+  {
+    name: `Report For Category: "${categoryName}"`,
+    description: `Gives permission to generate reports including "${categoryName}" and its dependents.`,
+    categoryId,
+  },
+];

@@ -259,7 +259,13 @@ db.permission.belongsTo(
 );
 
 // Foreign keys for Person
-// None!
+db.person.hasMany(
+  db.asset,
+  {
+    as: "borrowedAssets",
+    foreignKey: "borrowerId",
+  }
+);
 
 // Foreign keys for Room
 db.room.belongsTo(

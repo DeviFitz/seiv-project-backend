@@ -54,7 +54,22 @@ exports.findAll = (req, res) => {
 exports.findOne = (req, res) => {
   const id = req.params.id;
 
-  Group.findByPk(id)
+  const queries = req.query;
+  const includes = queries?.full != undefined ?
+  [
+    {
+      model: db.permission,
+      attributes: ["name", "categoryId"],
+      through: {
+        model: db.groupPermission,
+        attributes: [],
+      },
+    },
+  ] : [];
+
+  Group.findByPk(id, {
+    include: includes,
+  })
   .then((data) => {
     if (data) {
       res.send(data);

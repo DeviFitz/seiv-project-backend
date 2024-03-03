@@ -1,5 +1,6 @@
 const db = require("../models");
 const User = db.user;
+const { normalizePermissions } = require("./permission.controller");
 
 // Create and Save a new User
 exports.create = async (req, res) => {
@@ -59,10 +60,48 @@ exports.findAll = (req, res) => {
 exports.findOne = (req, res) => {
   const id = req.params.id;
 
-  User.findByPk(id)
+  const queries = req.query;
+  const includes = queries?.full != undefined ?
+  [
+    {
+      model: db.group,
+      as: "group",
+      attributes: ["name"],
+      include: {
+        model: db.permission,
+        attributes: ["name", "categoryId"],
+        through: {
+          model: db.groupPermission,
+          attributes: [],
+        },
+      }
+    },
+    {
+      model: db.person,
+      as: "person",
+      attributes: ["fName", "lName", "email"],
+      include: {
+        model: db.asset,
+        as: "borrowedAssets",
+        attributes: ["id"],
+      },
+    },
+    {
+      model: db.permission,
+      attributes: ["name", "categoryId"],
+      through: {
+        model: db.userPermission,
+        attributes: [],
+      },
+    },
+  ] : [];
+
+  User.findByPk(id, {
+    include: includes,
+  })
   .then((data) => {
     if (!!data) {
-      res.send(data.get({ plain: true }));
+      res.send(normalizePermissions(data.get({ plain: true })));
     } else {
       res.status(404).send({
         message: `Cannot find User with id=${id}.`,
@@ -70,6 +109,7 @@ exports.findOne = (req, res) => {
     }
   })
   .catch((err) => {
+    console.log(err)
     res.status(500).send({
       message: "Error retrieving User with id=" + id,
     });

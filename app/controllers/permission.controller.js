@@ -32,11 +32,9 @@ const Permission = db.permission;
 
 // Retrieve all Permissions from the database.
 exports.findAll = (req, res) => {
-  Permission.findAll(
-    {
-      ...req.paginator,
-    }
-  )
+  Permission.findAll({
+    ...req.paginator,
+  })
   .then((data) => {
     res.send(data.map(permission => permission.get({ plain: true })));
   })
@@ -134,3 +132,53 @@ exports.findOne = (req, res) => {
 //     });
 //   });
 // };
+
+exports.normalizePermissions = (obj) => {
+  const normalize = (permissions) => {
+    const normalizedPerms = [];
+    permissions.forEach(permission => {
+      if (!permission?.categoryId) return normalizedPerms.push({
+        name: permission.name,
+        clearance: "full",
+        report: false,
+      });
+
+      const permissionTiers = {
+        none: 0,
+        view: 1, 
+        edit: 2,
+        create: 3,
+        delete: 4,
+      };
+
+      const normalizedName = `${permission.name.match(/"[\s\S]*"/i)}`.replaceAll("\"", "");
+      const permissionGroup = normalizedPerms.find(perm => perm.name == normalizedName);
+      
+      const report = permission.name.match(/report/i)?.length > 0;
+      const clearance = report ? "none"
+      : permission.name.match(/view/i)?.length > 0 ? "view"
+      : permission.name.match(/edit/i)?.length > 0 ? "edit"
+      : permission.name.match(/create/i)?.length > 0 ? "create"
+      : permission.name.match(/delete/i)?.length > 0 ? "delete"
+      : "none";
+      
+      if (!permissionGroup) return normalizedPerms.push({
+        name: normalizedName,
+        clearance,
+        report,
+      });
+
+      if (permissionTiers[permissionGroup.clearance] < permissionTiers[clearance]) permissionGroup.clearance = clearance;
+      if (report) permissionGroup.report = true;
+    });
+    return normalizedPerms.sort((a, b) => a.name > b.name ? 1 : a.name < b.name ? -1 : 0);
+  };
+
+  if (!obj || ((typeof obj) != "object")) return obj;
+
+  if (obj?.permissions?.constructor === Array) obj.permissions = normalize(obj.permissions);
+  
+  Object.keys(obj).forEach(key => this.normalizePermissions(obj[key]));
+
+  return obj;
+};

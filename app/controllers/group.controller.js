@@ -1,4 +1,5 @@
 const db = require("../models");
+const { normalizePermissions, denormalizePermissions } = require("./permission.controller");
 const Group = db.group;
 
 // Create and Save a new Group
@@ -72,7 +73,8 @@ exports.findOne = (req, res) => {
   })
   .then((data) => {
     if (data) {
-      res.send(data);
+      denormalizePermissions(normalizePermissions(data.get({ plain: true })))
+      res.send(normalizePermissions(data.get({ plain: true })));
     } else {
       res.status(404).send({
         message: `Cannot find group with id=${id}.`,
@@ -87,26 +89,63 @@ exports.findOne = (req, res) => {
 };
 
 // Update a Group by the id in the request
-exports.update = (req, res) => {
+exports.update = async (req, res) => {
   const id = req.params.id;
-
-  Group.update(req.body, { where: { id } })
-  .then((num) => {
-    if (num > 0) {
-      res.send({
+  const t = await db.sequelize.transaction();
+  
+  try
+  {
+    let changed = false;
+    let error = false;
+    const target = await Group.findByPk(id, { transaction: t });
+    target.save({...(req.body ?? {}), transaction: t })
+    .then((num) => {
+      changed = num > 0;
+    })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error updating group with id=" + id,
+      });
+    });
+    
+    if (error) throw new Error();
+    
+    if (!!req.body?.permissions)
+    {
+      const ids = (await denormalizePermissions({ permissions: req.body.permissions }))?.permissions;
+      if (!!ids) await target.setPermissions(ids, { transaction: t })
+      .then(data => {
+        changed ||= data?.length > 0;
+      })
+      .catch(err => {
+        error = true;
+        console.log("Uh oh!")
+        res.status(500).send({
+          message: `Error setting group permissions for group with id=${id}!`,
+        })
+      })
+    
+      if (error) throw new Error();
+    }
+    
+    if (changed)
+    {
+      await t.commit();
+      return res.send({
         message: "Group was updated successfully.",
       });
-    } else {
-      res.send({
-        message: `Cannot update group with id=${id}. Maybe group was not found or req.body is empty!`,
-      });
     }
-  })
-  .catch((err) => {
-    res.status(500).send({
-      message: "Error updating group with id=" + id,
+    
+    res.send({
+      message: `Cannot update group with id=${id}. Maybe group was not found or req.body is empty!`,
     });
-  });
+    throw new Error();
+  }
+  catch
+  {
+    await t.rollback();
+  }
 };
 
 // Delete a Group with the specified id in the request

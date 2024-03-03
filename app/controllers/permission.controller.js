@@ -133,6 +133,18 @@ exports.findOne = (req, res) => {
 //   });
 // };
 
+const permissionTiers = {
+  none: 0,
+  view: 1, 
+  edit: 2,
+  create: 3,
+  delete: 4,
+};
+
+/**Finds and normalizes the permissions of the input object for the frontend
+ * 
+ * @param obj The object to find and normalize permissions for
+*/
 exports.normalizePermissions = (obj) => {
   const normalize = (permissions) => {
     const normalizedPerms = [];
@@ -142,14 +154,6 @@ exports.normalizePermissions = (obj) => {
         clearance: "full",
         report: false,
       });
-
-      const permissionTiers = {
-        none: 0,
-        view: 1, 
-        edit: 2,
-        create: 3,
-        delete: 4,
-      };
 
       const normalizedName = `${permission.name.match(/"[\s\S]*"/i)}`.replaceAll("\"", "");
       const permissionGroup = normalizedPerms.find(perm => perm.name == normalizedName);
@@ -179,6 +183,51 @@ exports.normalizePermissions = (obj) => {
   if (obj?.permissions?.constructor === Array) obj.permissions = normalize(obj.permissions);
   
   Object.keys(obj).forEach(key => this.normalizePermissions(obj[key]));
+
+  return obj;
+};
+
+/**Finds and denormalizes the permissions of the input object for the backend
+ * 
+ * @param obj The object to find and denormalize permissions for
+*/
+exports.denormalizePermissions = async (obj) => {
+  const permissions = (await Permission.findAll({
+    attributes: ["id", "name", "categoryId"],
+  }))?.map(perm => perm?.get({ plain: true }));
+  if (!permissions) throw { name: "PermissionRetrieveError", message: "Failed to retrieve all permissions" };
+
+  const denormalize = (permissionList) => {
+    const denormalizedPerms = [];
+
+    permissionList.forEach(permission => {
+      let search = permissions.find(perm => perm.name.toLowerCase() === permission.name.toLowerCase());
+      if (!!search) return denormalizedPerms.push(search);
+      
+      search = permissions.filter(perm => perm.name.toLowerCase().includes(permission.name.toLowerCase()) && !!perm.categoryId);
+      if (!!search)
+      {
+        const expandedClearance = Object.entries(permissionTiers)
+        .filter(entry => entry[1] <= permissionTiers[permission.clearance] && entry[1] > 0)
+        .map(entry => entry[0]);
+        const canReport = !!permission?.report;
+
+        expandedClearance.forEach(clearance => {
+          const existingPerm = search.find(perm => perm.name.toLowerCase().includes(clearance));
+          if (!!existingPerm) denormalizedPerms.push(existingPerm);
+        });
+        if (canReport) denormalizedPerms.push(search.find(perm => perm.name.toLowerCase().includes("report")));
+      }
+    });
+
+    return denormalizedPerms.map(perm => perm.id).sort((a, b) => a - b);
+  };
+
+  if (!obj || ((typeof obj) != "object")) return obj;
+
+  if (obj?.permissions?.constructor === Array) obj.permissions = denormalize(obj.permissions);
+  
+  Object.keys(obj).forEach(key => this.denormalizePermissions(obj[key]));
 
   return obj;
 };

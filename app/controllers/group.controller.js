@@ -120,7 +120,6 @@ exports.update = async (req, res) => {
       })
       .catch(err => {
         error = true;
-        console.log("Uh oh!")
         res.status(500).send({
           message: `Error setting group permissions for group with id=${id}!`,
         })

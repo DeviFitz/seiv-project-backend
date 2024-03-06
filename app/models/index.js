@@ -266,6 +266,13 @@ db.person.hasMany(
     foreignKey: "borrowerId",
   }
 );
+db.person.hasOne(
+  db.user,
+  { 
+    as: "user",
+    foreignKey: "personId",
+  }
+);
 
 // Foreign keys for Room
 db.room.belongsTo(

@@ -17,41 +17,56 @@ exports.create = async (req, res) => {
     description: req.body.description,
   };
 
-  // Save AssetCategory in the database
-  let error = false;
-  let response = {};
-  await AssetCategory.create(assetCategory)
-  .then((data) => {
-    response = data;
-  })
-  .catch((err) => {
-    res.status(500).send({
-      message: err.message || "Some error occurred while creating the asset category.",
-    });
-    error = true;
-  });
+  const t = await db.sequelize.transaction();
 
-  if (error) return;
+  try {
+    // Save AssetCategory in the database
+    let error = false;
+    let response = {};
+    await AssetCategory.create(assetCategory, { transaction: t })
+    .then((data) => {
+      response = data;
+    })
+    .catch((err) => {
+      res.status(500).send({
+        message: err.message || "Some error occurred while creating the asset category.",
+      });
+      error = true;
+    });
 
-  const categoryPermissions = this.getPermissions(response.dataValues.id, assetCategory.name);
-  
-  Permission.bulkCreate(categoryPermissions)
-  .then(async (data) => {
-    new Set(["Super User", ...(req.body.permittedGroups ?? [])])
-    .forEach(async (groupName) => {
-      const group = await db.group.findOne({ where: { name: groupName } })
-      if (!!group) await group.addPermissions(data);
+    if (error) throw new Error();
+
+    const categoryPermissions = this.getPermissions(response.dataValues.id, assetCategory.name);
+    
+    await Permission.bulkCreate(categoryPermissions, { transaction: t })
+    .then(async (data) => {
+      new Set(["Super User", ...(req.body.permittedGroups ?? [])])
+      .forEach(async (groupName) => {
+        const group = await db.group.findOne({ where: { name: groupName } })
+        if (!!group) await group.addPermissions(data, { transaction: t })
+        .catch(err => {
+          error = true;
+        });
+      });
+      if (!error) res.send(response.get({ plain: true }));
+    })
+    .catch(err => {
+      error = true;
     });
-    res.send(response.get({ plain: true }));
-  })
-  .catch(async (err) => {
-    await AssetCategory.destroy({ where: {
-      id: response.dataValues.id,
-    }});
-    res.status(500).send({
-      message: err.message || "Some error occurred while creating the asset category's permissions.",
-    });
-  });
+
+    if (error)
+    {
+      res.status(500).send({
+        message: err.message || "Some error occurred while creating the asset category's permissions.",
+      });
+      throw new Error();
+    }
+
+    await t.commit();
+  }
+  catch {
+    await t.rollback();
+  }
 };
 
 // Retrieve all AssetCategories from the database.

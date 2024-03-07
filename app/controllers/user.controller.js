@@ -1,6 +1,6 @@
 const db = require("../models");
 const User = db.user;
-const { normalizePermissions } = require("./permission.controller");
+const { normalizePermissions, denormalizePermissions } = require("./permission.controller");
 
 // Create and Save a new User
 exports.create = async (req, res) => {
@@ -115,11 +115,21 @@ exports.update = async (req, res) => {
   const id = req.params.id;
 
   const target = await User.findByPk(id, {
-    include: [{
-      model: db.group,
-      as: "group",
-      attributes: ['priority'],
-    }],
+    include: [
+      {
+        model: db.group,
+        as: "group",
+        attributes: ['priority'],
+      },
+      {
+        model: db.permission,
+        attributes: ["id"],
+        through: {
+          model: db.userPermission,
+          attributes: [],
+        },
+      },
+    ],
   });
 
   if (!target) return res.status(400).send({
@@ -150,6 +160,7 @@ exports.update = async (req, res) => {
     blocked: req.body.blocked,
     groupExpiration: req.body.groupExpiration,
     groupId: req.body.groupId,
+    permissions: req.body?.permissions,
   };
   
   // Check to make sure that user can be edited based on their priority and the requestor's permissions
@@ -200,9 +211,49 @@ exports.update = async (req, res) => {
     });
   }
 
+  let error = false;
+  let setPerms = false;
+  if (params?.permissions != undefined)
+  {
+    const permissions = target.dataValues?.permissions?.map(permission => permission?.dataValues?.id);
+    let denormalizedPerms;
+    await denormalizePermissions(params)
+    .then(data => {
+      denormalizedPerms = data?.permissions;
+    })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error reading permissions.",
+      });
+    })
+
+    if (error) return;
+
+    if (permissions?.length != denormalizedPerms?.length || permissions.some((val, i, arr) => val != denormalizedPerms?.[i]))
+    {
+      if (editPerms.superPermit || (editPerms.permit && subEdit))
+        setPerms = true;
+      else if (editPerms.permit) return res.status(401).send({
+        message: "Unauthorized! User does not have permission to give or revoke permissions from users of equal priority.",
+      });
+      else return res.status(401).send({
+        message: "Unauthorized! User does not have permission to give or revoke permissions from users.",
+      });
+    }
+  }
+
   const t = await db.sequelize.transaction();
   try {
-    let error = false;
+    if (setPerms) await target.setPermissions(params.permissions, { transaction: t })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error updating user's permissions!",
+      });
+    });
+
+    if (error) throw new Error();
 
     await target.save({ transaction: t })
     .then((data) => {

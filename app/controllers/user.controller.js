@@ -66,7 +66,7 @@ exports.findOne = (req, res) => {
     {
       model: db.group,
       as: "group",
-      attributes: ["name"],
+      attributes: ["id", "name"],
       include: {
         model: db.permission,
         attributes: ["name", "categoryId"],
@@ -80,11 +80,6 @@ exports.findOne = (req, res) => {
       model: db.person,
       as: "person",
       attributes: ["fName", "lName", "email"],
-      include: {
-        model: db.asset,
-        as: "borrowedAssets",
-        attributes: ["id"],
-      },
     },
     {
       model: db.permission,
@@ -127,8 +122,8 @@ exports.update = async (req, res) => {
     }],
   });
 
-  if (!target) return res.send({
-    message: `Cannot update User with id=${id}. Maybe User was not found or req.body is empty!`,
+  if (!target) return res.status(400).send({
+    message: `Cannot update User with id=${id}. Maybe User was not found!`,
   });
 
   const targetPrio = target.dataValues?.group?.dataValues?.priority;
@@ -156,7 +151,7 @@ exports.update = async (req, res) => {
     groupExpiration: req.body.groupExpiration,
     groupId: req.body.groupId,
   };
-
+  
   // Check to make sure that user can be edited based on their priority and the requestor's permissions
   if (params.blocked != undefined && params.blocked != null && params.blocked != target.dataValues.blocked)
   {
@@ -181,7 +176,7 @@ exports.update = async (req, res) => {
       message: "Unauthorized! User does not have permission to assign users to groups.",
     });
   }
-
+  
   if (params.groupId != undefined && params.groupId != target.dataValues.groupId)
   {
     if (editPerms.superAssign || (editPerms.assign && subEdit))
@@ -205,17 +200,30 @@ exports.update = async (req, res) => {
     });
   }
 
-  target.save()
-  .then((data) => {
-    res.send({
-      message: "User was updated successfully.",
+  const t = await db.sequelize.transaction();
+  try {
+    let error = false;
+
+    await target.save({ transaction: t })
+    .then((data) => {
+      res.send({
+        message: "User was updated successfully.",
+      });
+    })
+    .catch((err) => {
+      error = true;
+      res.status(500).send({
+        message: "Error updating User with id=" + id,
+      });
     });
-  })
-  .catch((err) => {
-    res.status(500).send({
-      message: "Error updating User with id=" + id,
-    });
-  });
+
+    if (error) throw new Error();
+
+    await t.commit();
+  }
+  catch {
+    await t.rollback();
+  }
 };
 
 // Delete a User with the specified id in the request

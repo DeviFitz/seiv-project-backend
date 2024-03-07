@@ -1,5 +1,7 @@
 const db = require("../models");
 const Person = db.person;
+const { checkHasPermission, PermTypes } = require("../authorization/authorization");
+const { normalizePermissions } = require("./permission.controller");
 
 // Create and Save a new Person
 exports.create = (req, res) => {
@@ -47,13 +49,65 @@ exports.findAll = (req, res) => {
 };
 
 // Find a single Person with an id
-exports.findOne = (req, res) => {
+exports.findOne = async (req, res) => {
   const id = req.params.id;
 
-  Person.findByPk(id)
+  if (req?.query?.full != undefined)
+  {
+    const userGroup = !((req.requestingUser.dataValues.groupExpiration ?? undefined) <= new Date()) ?
+    await db.group.findByPk(req.requestingUser.dataValues.groupId)
+    : undefined;
+    req.requestingUser.dataValues.groupPriority = userGroup?.priority;
+    
+    // Get user's permissions
+    const permissions = new Set([
+      ...(await req.requestingUser.getPermissions()),
+      ...((await userGroup?.getPermissions()) ?? [])
+    ]);
+    req.requestingUser.dataValues.permissions = [...permissions.values()];
+  }
+
+  const includes = req?.query?.full != undefined && checkHasPermission(req, "User", PermTypes.VIEW) ?
+  [
+    {
+      model: db.user,
+      as: "user",
+      attributes: ["groupExpiration", "blocked"],
+      include: [
+        {
+          model: db.group,
+          as: "group",
+          attributes: ["id", "name"],
+          include: {
+            model: db.permission,
+            attributes: ["name", "categoryId"],
+            through: {
+              model: db.groupPermission,
+              attributes: [],
+            },
+          }
+        },
+        {
+          model: db.permission,
+          attributes: ["name", "categoryId"],
+          through: {
+            model: db.userPermission,
+            attributes: [],
+          },
+        },
+      ],
+    },
+    {
+      model: db.asset,
+      as: "borrowedAssets",
+      attributes: ["id"],
+    },
+  ] : [];
+
+  Person.findByPk(id, { include: includes })
   .then((data) => {
     if (data) {
-      res.send(data);
+      res.send(normalizePermissions(data.get({ plain: true })));
     } else {
       res.status(404).send({
         message: `Cannot find person with id=${id}.`,

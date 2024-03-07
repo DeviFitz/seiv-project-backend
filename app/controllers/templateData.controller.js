@@ -5,10 +5,9 @@ const TemplateData = db.templateData;
 exports.create = (req, res) => {
   // Validate request
   if (!req.body.value || !req.body.templateId || !req.body.fieldId) {
-    res.status(400).send({
+    return res.status(400).send({
       message: "Content cannot be empty!",
     });
-    return;
   }
 
   // Create a TemplateData

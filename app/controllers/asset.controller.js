@@ -26,7 +26,7 @@ exports.create = async (req, res) => {
 
   const type = await db.assetType.findByPk(asset.typeId, {
     as: "type",
-    attributes: [],
+    attributes: ["id"],
     where: { categoryId: req.requestingUser.dataValues.creatableCategories },
     required: true,
   });
@@ -35,16 +35,34 @@ exports.create = async (req, res) => {
     message: "Error creating asset! Maybe user is unauthorized.",
   });
 
-  // Save Asset in the database
-  Asset.create(asset)
+  const t = await db.sequelize.transaction();
+  let error = false;
+
+  try {
+    // 1) check and see if template can be found
+    //    a) if so, don't include the data and fields from it
+    //    b) if not, make sure to include the data and fields
+    // 2) create any new data which was not completed and make them empty (NOT as though they were only just added through asset type)
+
+    // Save Asset in the database
+    Asset.create(asset)
     .then((data) => {
       res.send(data);
     })
     .catch((err) => {
+      error = true;
       res.status(500).send({
         message: err.message || "Some error occurred while creating the asset.",
       });
     });
+
+    if (error) throw new Error();
+
+    await t.commit();
+  }
+  catch {
+    await t.rollback();
+  }
 };
 
 // Retrieve all Assets from the database.
@@ -72,6 +90,10 @@ exports.findAll = (req, res) => {
 // Find a single Asset with an id
 exports.findOne = (req, res) => {
   const id = req.params.id;
+
+  // If getting the full asset,
+  // 1) Insert any new data which was added through the asset type (with some default text to make them aware)
+  // 2) Update any necessary values based on the template which the asset belongs to (if any)
 
   Asset.findByPk(id, {
     include: {

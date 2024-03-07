@@ -5,10 +5,9 @@ const Building = db.building;
 exports.create = async (req, res) => {
   // Validate request
   if (!req.body.abbreviation || !req.body.assetId) {
-    res.status(400).send({
+    return res.status(400).send({
       message: "Content cannot be empty!",
     });
-    return;
   }
 
   // Create a Building
@@ -19,7 +18,7 @@ exports.create = async (req, res) => {
   };
 
   const type = await db.asset.findByPk(building.assetId, {
-    attributes: [],
+    attributes: ["id"],
     include: {
       model: db.assetType,
       as: "type",

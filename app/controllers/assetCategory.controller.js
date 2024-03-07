@@ -40,14 +40,13 @@ exports.create = async (req, res) => {
     
     await Permission.bulkCreate(categoryPermissions, { transaction: t })
     .then(async (data) => {
-      new Set(["Super User", ...(req.body.permittedGroups ?? [])])
-      .forEach(async (groupName) => {
-        const group = await db.group.findOne({ where: { name: groupName } })
-        if (!!group) await group.addPermissions(data, { transaction: t })
-        .catch(err => {
-          error = true;
-        });
+      const groupNames = [...new Set(["Super User", ...(req.body.permittedGroups ?? [])]).values()];
+      const groups = await db.group.findAll({ where: { name: groupNames }});
+      await Promise.all(groups.map(group => group.addPermissions(data, { transaction: t })))
+      .catch(err => {
+        error = true;
       });
+
       if (!error) res.send(response.get({ plain: true }));
     })
     .catch(err => {

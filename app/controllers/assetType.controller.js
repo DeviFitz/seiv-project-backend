@@ -20,7 +20,7 @@ exports.create = (req, res) => {
   };
 
   if (!req.requestingUser.dataValues.creatableCategories.includes(assetType.categoryId)) return res.status(400).send({
-    message: "Error creating asset template! Maybe user is unauthorized.",
+    message: "Error creating asset type! Maybe user is unauthorized.",
   });
 
   // Save AssetType in the database

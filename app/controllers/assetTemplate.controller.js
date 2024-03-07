@@ -20,7 +20,7 @@ exports.create = async (req, res) => {
 
   const type = await db.assetType.findByPk(assetTemplate.assetTypeId, {
     as: "assetType",
-    attributes: [],
+    attributes: ["id"],
     where: { categoryId: req.requestingUser.dataValues.creatableCategories },
     required: true,
   });

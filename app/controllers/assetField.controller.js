@@ -5,10 +5,9 @@ const AssetField = db.assetField;
 exports.create = async (req, res) => {
   // Validate request
   if (!req.body.label || !req.body.row || !req.body.rowSpan || !req.body.column || !req.body.columnSpan || !req.body.assetTypeId) {
-    res.status(400).send({
+    return res.status(400).send({
       message: "Content cannot be empty!",
     });
-    return;
   }
 
   // Create an AssetField
@@ -28,7 +27,7 @@ exports.create = async (req, res) => {
 
   const type = await db.assetType.findByPk(assetField.assetTypeId, {
     as: "assetType",
-    attributes: [],
+    attributes: ["id"],
     where: { categoryId: req.requestingUser.dataValues.editableCategories },
     required: true,
   });

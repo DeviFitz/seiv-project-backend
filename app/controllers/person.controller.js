@@ -51,6 +51,7 @@ exports.findAll = (req, res) => {
 // Find a single Person with an id
 exports.findOne = async (req, res) => {
   const id = req.params.id;
+  let viewableCats;
 
   if (req?.query?.full != undefined)
   {
@@ -64,7 +65,11 @@ exports.findOne = async (req, res) => {
       ...(await req.requestingUser.getPermissions()),
       ...((await userGroup?.getPermissions()) ?? [])
     ]);
-    req.requestingUser.dataValues.permissions = [...permissions.values()];
+
+    req.requestingUser.dataValues.permissions = [...permissions.values()]
+    viewableCats = req.requestingUser.dataValues.permissions
+    .filter(permission => !!permission.categoryId && permission.name.match(/View/i)?.length > 0)
+    .map(permission => permission.categoryId);
   }
 
   const includes = req?.query?.full != undefined && checkHasPermission(req, "User", PermTypes.VIEW) ?
@@ -105,9 +110,49 @@ exports.findOne = async (req, res) => {
   ] : [];
 
   Person.findByPk(id, { include: includes })
-  .then((data) => {
+  .then(async (data) => {
     if (data) {
-      res.send(normalizePermissions(data.get({ plain: true })));
+      const temp = normalizePermissions(data.get({ plain: true }));
+      
+      if (!!temp?.borrowedAssets) 
+      {
+        console.log("Running this code!")
+        const assets = await db.asset.findAll({
+          where: {
+            id: temp.borrowedAssets,
+          },
+          include: [
+            {
+              association: "type",
+              attributes: ["name"],
+              where: {
+                categoryId: viewableCats,
+              },
+              required: true,
+              include: {
+                association: "identifier",
+                attributes: [],
+                include: {
+                  association: "assetData",
+                  attributes: ["value"],
+                  where: {
+                    assetId: db.Sequelize.col("asset.id"),
+                  },
+                },
+              },
+            },
+          ],
+        })
+        .catch(err => {
+          console.log(err)
+        });
+
+        assets?.forEach(asset => {
+          asset = asset.get({ plain: true });
+        })
+      }
+
+      res.send(temp);
     } else {
       res.status(404).send({
         message: `Cannot find person with id=${id}.`,

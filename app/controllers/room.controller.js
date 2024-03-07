@@ -19,7 +19,7 @@ exports.create = async (req, res) => {
   };
   
   const type = await db.building.findByPk(room.buildingId, {
-    attributes: [],
+    attributes: ["id"],
     include: {
       model: db.asset,
       as: "asset",

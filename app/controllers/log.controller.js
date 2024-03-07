@@ -27,7 +27,7 @@ exports.create = async (req, res) => {
   };
 
   const type = await db.asset.findByPk(log.assetId, {
-    attributes: [],
+    attributes: ["id"],
     include: {
       model: db.assetType,
       as: "type",

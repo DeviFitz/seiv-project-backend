@@ -6,10 +6,9 @@ exports.create = async (req, res) => {
   // Validate request
   if (!req.body.date || !req.body.status || !req.body.typeId || !req.body.assetId)
   {
-    res.status(400).send({
+    return res.status(400).send({
       message: "Content cannot be empty!",
     });
-    return;
   }
 
   // Create an Alert
@@ -23,7 +22,7 @@ exports.create = async (req, res) => {
   };
 
   const type = await db.asset.findByPk(alert.assetId, {
-    attributes: [],
+    attributes: ["id"],
     include: {
       model: db.assetType,
       as: "type",
@@ -154,7 +153,7 @@ exports.update = async (req, res) => {
 exports.delete = async (req, res) => {
   const id = req.params.id;
   const type = await Alert.findByPk(id, {
-    attributes: [],
+    attributes: ["id"],
     include: {
       model: db.asset,
       as: "asset",

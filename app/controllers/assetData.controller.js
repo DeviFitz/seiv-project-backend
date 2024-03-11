@@ -1,7 +1,7 @@
 const db = require("../models");
 const AssetData = db.assetData;
 
-// Create and Save a new AssetData
+//#region Create and Save a new AssetData
 // exports.create = async (req, res) => {
 //   // Validate request
 //   if (!req.body.assetId || !req.body.fieldId) {
@@ -45,6 +45,7 @@ const AssetData = db.assetData;
 //     });
 //   });
 // };
+//#endregion
 
 // Retrieve all AssetData from the database.
 exports.findAll = (req, res) => {
@@ -110,43 +111,69 @@ exports.findOne = (req, res) => {
 };
 
 // Update an AssetData by the id in the request
-exports.update = (req, res) => {
+exports.update = async (req, res) => {
   const id = req.params.id;
 
-  AssetData.update(req.body, {
-    where: { id },
-    include: {
-      model: db.asset,
-      as: "asset",
-      attributes: [],
-      required: true,
+  const t = await db.sequelize.transaction();
+  let error = false;
+
+  try {
+    const target = await AssetData.findByPk(id, {
+      where: { id },
       include: {
-        model: db.assetType,
-        as: "type",
+        model: db.asset,
+        as: "asset",
         attributes: [],
         required: true,
-        where: { categoryId: req.requestingUser.dataValues.editableCategories },
+        include: {
+          model: db.assetType,
+          as: "type",
+          attributes: [],
+          required: true,
+          where: { categoryId: req.requestingUser.dataValues.editableCategories },
+          include: {
+            model: db.assetField,
+            as: "identifier",
+            attributes: ["label"],
+            where: { id: db.Sequelize.col("assetData.fieldId") },
+          },
+        },
       },
-    },
-  })
-  .then((num) => {
-    if (num > 0) {
-      res.send({
-        message: "Asset data was updated successfully.",
-      });
-    } else {
-      res.send({
-        message: `Cannot update asset data with id=${id}. Maybe asset data was not found, req.body is empty, or user is unauthorized!`,
-      });
-    }
-  })
-  .catch((err) => {
-    res.status(500).send({
-      message: "Error updating asset data with id=" + id,
     });
-  });
+
+    console.log(target?.get({ plain: true }))
+    if (!target)
+    {
+      res.status(404).send({
+        message: "Error updating asset data! Maybe user is unauthorized or asset data was not found.",
+      });
+      throw new Error();
+    }
+
+    // If the data's type's identifier exists, check to make sure the asset data is unique across its sibling identifiers
+
+    await target.save({ transaction: t })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error updating asset data with id=" + id,
+      });
+    });
+
+    if (error) throw new Error();
+
+    res.send({
+      message: "Asset data was updated successfully.",
+    });
+
+    await t.commit();
+  }
+  catch {
+    t.rollback();
+  }
 };
 
+//#region Deleting
 // Delete an AssetData with the specified id in the request
 // exports.delete = (req, res) => {
 //   const id = req.params.id;
@@ -188,3 +215,4 @@ exports.update = (req, res) => {
 //     });
 //   });
 // };
+//#endregion

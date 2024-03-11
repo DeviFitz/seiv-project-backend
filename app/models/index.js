@@ -151,6 +151,13 @@ db.assetField.hasMany(
     foreignKey: "fieldId",
   }
 );
+db.assetField.hasMany(
+  db.templateData,
+  { 
+    as: "templateData",
+    foreignKey: "fieldId",
+  }
+);
 
 // Foreign keys for Asset Template
 db.assetTemplate.belongsTo(
@@ -163,7 +170,7 @@ db.assetTemplate.belongsTo(
   }
 );
 db.assetTemplate.hasMany(
-  db.assetData,
+  db.templateData,
   { 
     as: "data",
     foreignKey: "templateId",

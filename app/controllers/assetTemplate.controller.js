@@ -44,6 +44,7 @@ exports.create = async (req, res) => {
 // Retrieve all AssetTemplates from the database.
 exports.findAll = (req, res) => {
   AssetTemplate.findAll({
+    ...req.paginator,
     include: {
       model: db.assetType,
       as: "assetType",
@@ -71,17 +72,17 @@ exports.findOne = (req, res) => {
     include: {
       model: db.assetField,
       as: "fields",
-      attributes: ["label"],
+      attributes: ["id", "label"],
+      required: false,
       where: { templateField: true },
-    }
+      include: {
+        model: db.templateData,
+        as: "templateData",
+        where: { templateId: id },
+        limit: 1,
+      },
+    },
   } : {};
-  const templateInclude = full ? [
-    {
-      model: db.templateData,
-      as: "data",
-      attributes: ["value"],
-    }
-  ] : [];
 
   AssetTemplate.findByPk(id, {
     ...req.paginator,
@@ -94,15 +95,17 @@ exports.findOne = (req, res) => {
         where: { categoryId: req.requestingUser.dataValues.viewableCategories },
         ...typeInclude,
       },
-      ...templateInclude,
     ]
   })
   .then((data) => {
+    data = data?.get({ plain: true });
+    if (data?.assetType?.fields?.length > 0) data.assetType.fields.forEach(field => field.templateData = field.templateData?.[0] ?? null);
+
     if (data) {
       res.send(data);
     } else {
       res.status(404).send({
-        message: `Cannot find asset template with id=${id}. Maybe user is unauthorized!`,
+        message: `Cannot find asset template with id=${id}. Maybe asset template was not found or user is unauthorized!`,
       });
     }
   })
@@ -114,35 +117,83 @@ exports.findOne = (req, res) => {
 };
 
 // Update an AssetTemplate by the id in the request
-exports.update = (req, res) => {
+exports.update = async (req, res) => {
   const id = req.params.id;
 
-  AssetTemplate.update(req.body, {
-    where: { id },
-  })
-  .then((num) => {
-    if (num > 0) {
-      res.send({
-        message: "Asset template was updated successfully.",
+  const t = await db.sequelize.transaction();
+  let error = false;
+
+  const setTemplateData = req.body?.assetType != undefined;
+  const includes = false && setTemplateData ? {
+    include: {
+      model: db.assetField,
+      as: "fields",
+      attributes: ["id", "label"],
+      required: false,
+      where: { templateField: true },
+      include: {
+        model: db.templateData,
+        as: "templateData",
+        where: { templateId: id },
+        limit: 1,
+      },
+    },
+  } : {};
+
+  try {
+    const target = await AssetTemplate.findByPk(id, {
+      include: {
+        model: db.assetType,
+        attributes: ["categoryId"],
+        as: "assetType",
+        required: true,
+        ...includes,
+      },
+    }).catch(err => console.log(err));
+
+    if (!target)
+    {
+      res.status(404).send({
+        message: `Asset template not found!`,
       });
-    } else {
-      res.send({
-        message: `Cannot update asset template with id=${id}. Maybe asset template was not found or req.body is empty!`,
-      });
+      throw new Error();
     }
-  })
-  .catch((err) => {
-    res.status(500).send({
-      message: "Error updating asset template with id=" + id,
+    else if (!req.requestingUser.dataValues?.editableCategories?.includes(target.dataValues?.assetType?.categoryId))
+    {
+      res.status(401).send({
+        message: "Access denied!",
+      });
+      throw new Error();
+    }
+    console.log(target.get({ plain: true }))
+
+    target.set(req.body);
+    await target.save({ transaction: t })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error updating asset template with id=" + id,
+      });
     });
-  });
+
+    if (error) throw new Error();
+
+    res.send({
+      message: "Asset template was updated successfully.",
+    });
+
+    await t.commit();
+  }
+  catch {
+    t.rollback();
+  }
 };
 
 // Delete an AssetTemplate with the specified id in the request
 exports.delete = async (req, res) => {
   const id = req.params.id;
   const type = await AssetTemplate.findByPk(id, {
-    attributes: [],
+    attributes: ["id"],
     include: {
       model: db.assetType,
       as: "assetType",

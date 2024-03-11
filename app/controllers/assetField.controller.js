@@ -27,7 +27,7 @@ exports.create = async (req, res) => {
 
   const type = await db.assetType.findByPk(assetField.assetTypeId, {
     as: "assetType",
-    attributes: ["id"],
+    attributes: [],
     where: { categoryId: req.requestingUser.dataValues.editableCategories },
     required: true,
     include: {
@@ -135,16 +135,24 @@ exports.update = async (req, res) => {
       throw new Error();
     }
 
-    const fieldFamily = (await db.assetType.findByPk(target.dataValues.assetTypeId, {
-      attributes: [],
+    const type = await db.assetType.findByPk(target.dataValues.assetTypeId, {
+      attributes: ["identifierId"],
       include: {
         model: AssetField,
         as: "fields",
       },
       transaction: t,
-    }))?.dataValues?.fields?.map(field => field.get({ plain: true })) ?? [{ id, ...req.body }];
-    
+    });
+
+    // Correct a few attributes in case they don't line up
+    if (type?.dataValues?.identifierId == id) req.body = {
+      ...req.body,
+      required: true,
+      templateField: false,
+    };
+
     // Make sure that the current asset field is in the list to be validated
+    const fieldFamily = type?.dataValues?.fields?.map(field => field.get({ plain: true })) ?? [{ id, ...req.body }];
     let self = fieldFamily.findIndex(field => field.id == id);
     if (self >= 0) fieldFamily[self] = {
       ...fieldFamily[self],
@@ -180,7 +188,6 @@ exports.update = async (req, res) => {
   catch {
     t.rollback();
   }
-
 };
 
 // Delete an AssetField with the specified id in the request
@@ -280,11 +287,11 @@ exports.validateFields = (fields) => {
  * @param fields The fields to anchor
 */
 exports.anchorFields = (fields) => {
-  let minRow = fields?.reduce((prev, curr, i) => prev = curr.row < prev ? curr.row : prev, fields?.[0]?.row);
-  let minCol = fields?.reduce((prev, curr, i) => prev = curr.column < prev ? curr.column : prev, fields?.[0]?.column);
+  const minRow = fields?.reduce((prev, curr, i) => prev = curr.row < prev ? curr.row : prev, fields?.[0]?.row);
+  const minCol = fields?.reduce((prev, curr, i) => prev = curr.column < prev ? curr.column : prev, fields?.[0]?.column);
 
   fields.forEach(field => {
     field.row -= minRow;
     field.column -= minCol;
-  })
+  });
 };

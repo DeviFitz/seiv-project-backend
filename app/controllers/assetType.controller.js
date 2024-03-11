@@ -123,7 +123,36 @@ exports.update = async (req, res) => {
       throw new Error();
     }
 
-    await assetType.save(req.body)
+    // Ensure that if identifier field is changed to a new one, its attributes are adjusted properly and its template data are deleted
+    if (assetType.dataValues.identifierId != req.body?.identifierId && !isNaN(parseInt(req.body?.identifierId)))
+    {
+      await db.templateData.destroy({
+        where: {
+          fieldId: req.body.identifierId,
+        }
+      })
+      .catch(err => {
+        error = true;
+        res.status(500).send({
+          message: `Error updating identifier for asset type with id=${id}! Maybe new identifier has dependent template data.`,
+        });
+      });
+      
+      if (error) throw new Error();
+
+      await db.assetField.update({ required: true, templateField: false }, { where: { id: req.body.identifierId } })
+      .catch(err => {
+        error = true;
+        res.status(500).send({
+          message: `Error updating identifier for asset type with id=${id}.`,
+        });
+      });
+
+      if (error) throw new Error();
+    }
+
+    assetType.set(req.body);
+    await assetType.save({ transaction: t })
     .catch(err => {
       error = true;
       res.status(500).send({

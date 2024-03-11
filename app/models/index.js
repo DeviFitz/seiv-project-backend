@@ -162,6 +162,13 @@ db.assetTemplate.belongsTo(
     hooks: true 
   }
 );
+db.assetTemplate.hasMany(
+  db.assetData,
+  { 
+    as: "data",
+    foreignKey: "templateId",
+  }
+);
 
 // Foreign keys for Asset Type
 db.assetType.belongsTo(
@@ -180,6 +187,13 @@ db.assetType.belongsTo(
     foreignKey: { allowNull: true },
     onDelete: "CASCADE",
     hooks: true 
+  }
+);
+db.assetType.hasMany(
+  db.assetField,
+  { 
+    as: "fields",
+    foreignKey: "assetTypeId",
   }
 );
 

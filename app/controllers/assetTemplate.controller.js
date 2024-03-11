@@ -47,34 +47,55 @@ exports.findAll = (req, res) => {
     include: {
       model: db.assetType,
       as: "assetType",
-      attributes: [],
+      attributes: ["name"],
       required: true,
       where: { categoryId: req.requestingUser.dataValues.viewableCategories },
     },
   })
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: err.message || "Some error occurred while retrieving asset templates.",
-      });
+  .then((data) => {
+    res.send(data);
+  })
+  .catch((err) => {
+    res.status(500).send({
+      message: err.message || "Some error occurred while retrieving asset templates.",
     });
+  });
 };
 
 // Find a single AssetTemplate with an id
 exports.findOne = (req, res) => {
   const id = req.params.id;
+  const full = req?.query?.full != undefined;
+
+  const typeInclude = full ? {
+    include: {
+      model: db.assetField,
+      as: "fields",
+      attributes: ["label"],
+      where: { templateField: true },
+    }
+  } : {};
+  const templateInclude = full ? [
+    {
+      model: db.templateData,
+      as: "data",
+      attributes: ["value"],
+    }
+  ] : [];
 
   AssetTemplate.findByPk(id, {
     ...req.paginator,
-    include: {
-      model: db.assetType,
-      as: "assetType",
-      attributes: [],
-      required: true,
-      where: { categoryId: req.requestingUser.dataValues.viewableCategories },
-    },
+    include: [
+      {
+        model: db.assetType,
+        as: "assetType",
+        attributes: full ? ["name"] : [],
+        required: true,
+        where: { categoryId: req.requestingUser.dataValues.viewableCategories },
+        ...typeInclude,
+      },
+      ...templateInclude,
+    ]
   })
   .then((data) => {
     if (data) {

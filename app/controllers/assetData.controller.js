@@ -114,6 +114,16 @@ exports.findOne = (req, res) => {
 exports.update = async (req, res) => {
   const id = req.params.id;
 
+  if (req.body?.value !== undefined)
+  {
+    if (req.body.value !== null)
+      req.body.value = req.body.value.trim();
+    
+    if ((req.body.value?.length ?? 0) < 1) return res.status(400).send({
+      message: "Asset value cannot be updated to an empty value!",
+    });
+  }
+
   const t = await db.sequelize.transaction();
   let error = false;
 
@@ -123,26 +133,25 @@ exports.update = async (req, res) => {
       include: {
         model: db.asset,
         as: "asset",
-        attributes: [],
+        attributes: ["id"],
         required: true,
         include: {
           model: db.assetType,
           as: "type",
-          attributes: [],
+          attributes: ["id"],
           required: true,
           where: { categoryId: req.requestingUser.dataValues.editableCategories },
           include: {
             model: db.assetField,
             as: "identifier",
             attributes: ["id"],
+            required: false,
             where: { id: db.Sequelize.col("assetData.fieldId") },
           },
         },
       },
     });
 
-    // Need to check to see if identifier will be nested or not
-    console.log(target?.get({ plain: true }))
     if (!target)
     {
       res.status(404).send({
@@ -150,12 +159,15 @@ exports.update = async (req, res) => {
       });
       throw new Error();
     }
+    
+    target.set(req.body)
 
     // If the data's type's identifier exists, check to make sure the asset data is unique across its sibling identifiers
     const identifierId = target.dataValues.asset.dataValues.type.dataValues?.identifier?.dataValues?.id;
     if (!isNaN(parseInt(identifierId)))
     {
       const family = (await db.assetField.findByPk(identifierId, {
+        attributes: [],
         include: {
           model: AssetData,
           as: "assetData",

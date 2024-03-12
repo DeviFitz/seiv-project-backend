@@ -101,6 +101,13 @@ db.asset.belongsTo(
     hooks: true 
   }
 );
+db.asset.hasMany(
+  db.alert,
+  { 
+    as: "alerts",
+    foreignKey: "assetId",
+  }
+);
 
 // Foreign keys for Asset Category
 // None!

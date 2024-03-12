@@ -65,7 +65,7 @@ exports.findOne = (req, res) => {
         model: db.fieldList,
         as: "fieldList",
         attributes: ["id", "name"],
-      }
+      },
     },
   } : {};
 

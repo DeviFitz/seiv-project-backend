@@ -123,12 +123,12 @@ exports.update = async (req, res) => {
   const t = await db.sequelize.transaction();
   let error = false;
 
-  const setTemplateData = req.body?.assetType != undefined;
-  const includes = false && setTemplateData ? {
+  const setTemplateData = req.body?.assetType?.fields != undefined;
+  const includes = setTemplateData ? {
     include: {
       model: db.assetField,
       as: "fields",
-      attributes: ["id", "label"],
+      attributes: ["id"],
       required: false,
       where: { templateField: true },
       include: {
@@ -149,7 +149,7 @@ exports.update = async (req, res) => {
         required: true,
         ...includes,
       },
-    }).catch(err => console.log(err));
+    });
 
     if (!target)
     {
@@ -165,7 +165,72 @@ exports.update = async (req, res) => {
       });
       throw new Error();
     }
-    console.log(target.get({ plain: true }))
+
+    if (setTemplateData)
+    {
+      const simpleTarget = target.get({ plain: true }).assetType.fields;
+
+      const removeData = [];
+      const newData = req.body.assetType.fields.filter(field => {
+        const templateData = field.templateData;
+        if (isNaN(parseInt(field?.id))) return false;
+        
+        const correspondingField = simpleTarget.find(targetField => targetField.id == field.id);
+        if (!correspondingField) return false;
+        else if (!templateData) {
+          const dataId = parseInt(correspondingField.templateData?.[0]?.id);
+          if (!isNaN(dataId)) removeData.push(dataId);
+          return false;
+        }
+
+        field.templateData = {
+          ...(correspondingField.templateData?.[0] ?? {}),
+          ...templateData,
+          templateId: id,
+          fieldId: correspondingField.id,
+        };
+
+        const valid = field.templateData.value.trim().length > 0;
+        if (!valid && field.templateData.id != undefined) removeData.push(field.templateData.id);
+        return valid;
+      });
+
+      // Create / Update all necessary fields
+      await Promise.all(newData.map(field => db.templateData.upsert(field.templateData, {
+          where: {
+            templateId: id,
+            fieldId: field.id,
+          },
+          transaction: t,
+        })
+        .catch(err => {
+          error = true;
+        })
+      ));
+
+      if (error) {
+        res.status(500).send({
+          message: "Error adding or updating template data!",
+        });
+        throw new Error();
+      }
+      
+      if (removeData.length > 0) {
+        await db.templateData.destroy({
+          where: { id: removeData },
+          transaction: t,
+        })
+        .catch(err => {
+          error = true;
+          console.log(err)
+          res.status(500).send({
+            message: "Error removing template data to asset template!",
+          });
+        });
+    
+        if (error) throw new Error();
+      }
+    }
 
     target.set(req.body);
     await target.save({ transaction: t })

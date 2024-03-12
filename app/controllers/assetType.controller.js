@@ -196,13 +196,15 @@ exports.update = async (req, res) => {
         })
         .catch(err => {
           error = true;
-          res.status(500).send({
-            message: "Error updating asset fields!",
-          });
         })
       ));
-
-      if (error) throw new Error();
+        
+      if (error) {
+        res.status(500).send({
+          message: "Error updating asset fields!",
+        });
+        throw new Error();
+      }
 
       if (addFields.length > 0)
       {

@@ -108,6 +108,13 @@ db.asset.hasMany(
     foreignKey: "assetId",
   }
 );
+db.asset.hasMany(
+  db.assetData,
+  { 
+    as: "data",
+    foreignKey: "assetId",
+  }
+);
 
 // Foreign keys for Asset Category
 // None!

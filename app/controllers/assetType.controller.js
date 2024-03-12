@@ -129,7 +129,8 @@ exports.update = async (req, res) => {
       await db.templateData.destroy({
         where: {
           fieldId: req.body.identifierId,
-        }
+        },
+        transaction: t,
       })
       .catch(err => {
         error = true;
@@ -140,7 +141,41 @@ exports.update = async (req, res) => {
       
       if (error) throw new Error();
 
-      await db.assetField.update({ required: true, templateField: false }, { where: { id: req.body.identifierId } })
+      // make sure all assets under the type have asset data for the field
+      const assets = await db.asset.findAll({
+        attributes: ["id"],
+        where: { typeId: id },
+        transaction: t,
+        include: {
+          model: db.assetData,
+          as: "data",
+          attributes: ["value"],
+          where: { fieldId: req.body.identifierId },
+          limit: 1,
+        },
+      });
+
+      if (!assets) {
+        res.status(500).send({
+          message: "Error finding assets with typeId=" + id,
+        });
+        throw new Error();
+      }
+
+      const values = new Set();
+      for (let i = 0; i < assets.length; i++)
+      {
+        const currData = assets[i].dataValues.data?.[0] ?? null;
+        if (!currData?.value || values.has(currData.value)) {
+          res.status(400).send({
+            message: "Error updating asset type identifier! Not all assets have filled out the identifier with unique values.",
+          });
+          throw new Error();
+        }
+        values.add(currData.value);
+      }
+
+      await db.assetField.update({ required: true, templateField: false }, { where: { id: req.body.identifierId }, transaction: t })
       .catch(err => {
         error = true;
         res.status(500).send({
@@ -151,21 +186,10 @@ exports.update = async (req, res) => {
       if (error) throw new Error();
     }
 
-    assetType.set(req.body);
-    await assetType.save({ transaction: t })
-    .catch(err => {
-      error = true;
-      res.status(500).send({
-        message: "Error updating asset type with id=" + id,
-      });
-    });
-
-    if (error) throw new Error();
-
     if (setFields)
     {
       // So that the user doesn't technically have to send the whole field back to update them
-      const existingFields = assetType?.dataValues?.fields?.map(field => field.get({ plain: true }));
+      const existingFields = assetType?.get({ plain: true })?.fields;
 
       // Validates to make sure that all fields do not collide with one another
       const fields = req.body.fields.map(field => {
@@ -185,14 +209,11 @@ exports.update = async (req, res) => {
       }
 
       anchorFields(fields);
-      let addFields = [];
+      // Automatically creates the fields and connects them to the asset type
       await Promise.all(fields.map(async (field) => db.assetField.upsert(field, {
           where: { id: field.id },
           transaction: t,
           returning: true,
-        })
-        .then(([assetField, created]) => {
-          if (created) addFields.push(assetField?.dataValues?.id);
         })
         .catch(err => {
           error = true;
@@ -206,17 +227,6 @@ exports.update = async (req, res) => {
         throw new Error();
       }
 
-      if (addFields.length > 0)
-      {
-        await assetType.addFields(addFields, { transaction: t })
-        .catch(err => {
-          error = true;
-          res.status(500).send({
-            message: "Error adding asset fields!",
-          });
-        });
-      }
-
       if (deleteFields.length > 0)
       {
         await db.assetField.destroy({ where: { id: deleteFields }, transaction: t })
@@ -228,6 +238,17 @@ exports.update = async (req, res) => {
         });
       }
     }
+
+    if (error) throw new Error();
+
+    assetType.set(req.body);
+    await assetType.save({ transaction: t })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error updating asset type with id=" + id,
+      });
+    });
 
     if (error) throw new Error();
     

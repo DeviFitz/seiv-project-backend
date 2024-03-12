@@ -63,7 +63,14 @@ exports.findAll = (req, res) => {
 exports.findOne = (req, res) => {
   const id = req.params.id;
 
-  Building.findByPk(id)
+  const includes = req.query?.full != undefined ? {
+    include: {
+      model: db.room,
+      as: "rooms"
+    }
+  } : {};
+
+  Building.findByPk(id, { ...includes })
   .then((data) => {
     if (data) {
       res.send(data);
@@ -126,7 +133,7 @@ exports.delete = async (req, res) => {
     include: {
       model: db.asset,
       as: "asset",
-      attributes: [],
+      attributes: ["id"],
       raw: true,
       required: true,
       include: {
@@ -144,8 +151,8 @@ exports.delete = async (req, res) => {
     message: "Error deleting building! Maybe building was not found or user is unauthorized.",
   });
 
-  Building.destroy({
-    where: { id },
+  db.asset.destroy({
+    where: { id: type.dataValues.asset.dataValues.id },
   })
   .then((num) => {
     if (num > 0) {

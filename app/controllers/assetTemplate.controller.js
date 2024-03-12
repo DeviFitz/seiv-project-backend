@@ -189,8 +189,9 @@ exports.update = async (req, res) => {
           templateId: id,
           fieldId: correspondingField.id,
         };
+        field.templateData.value = field.templateData.value.trim();
 
-        const valid = field.templateData.value.trim().length > 0;
+        const valid = field.templateData.value.length > 0;
         if (!valid && field.templateData.id != undefined) removeData.push(field.templateData.id);
         return valid;
       });

@@ -214,6 +214,13 @@ db.building.belongsTo(
     hooks: true 
   }
 );
+db.building.hasMany(
+  db.room,
+  { 
+    as: "rooms",
+    foreignKey: "buildingId",
+  }
+);
 
 // Foreign keys for Field List
 // None!

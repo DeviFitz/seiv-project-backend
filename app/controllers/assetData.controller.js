@@ -134,13 +134,14 @@ exports.update = async (req, res) => {
           include: {
             model: db.assetField,
             as: "identifier",
-            attributes: ["label"],
+            attributes: ["id"],
             where: { id: db.Sequelize.col("assetData.fieldId") },
           },
         },
       },
     });
 
+    // Need to check to see if identifier will be nested or not
     console.log(target?.get({ plain: true }))
     if (!target)
     {
@@ -151,6 +152,31 @@ exports.update = async (req, res) => {
     }
 
     // If the data's type's identifier exists, check to make sure the asset data is unique across its sibling identifiers
+    const identifierId = target.dataValues.asset.dataValues.type.dataValues?.identifier?.dataValues?.id;
+    if (!isNaN(parseInt(identifierId)))
+    {
+      const family = (await db.assetField.findByPk(identifierId, {
+        include: {
+          model: AssetData,
+          as: "assetData",
+          attributes: ["id", "value"],
+        },
+      }))?.get({ plain: true });
+
+      if (!family) {
+        res.status(500).send({
+          message: "Error retrieving identifier and data!",
+        });
+        throw new Error();
+      }
+
+      if (family.assetData.some(data => data.id != id && data.value == target.dataValues.value)) {
+        res.status(400).send({
+          message: "Error updating asset data! Asset data is an identifier but is not unique to its asset.",
+        });
+        throw new Error();
+      }
+    }
 
     await target.save({ transaction: t })
     .catch(err => {

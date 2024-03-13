@@ -202,48 +202,14 @@ exports.create = async (req, res) => {
 // Retrieve all Assets from the database.
 exports.findAll = (req, res) => {
   const raw = req.query?.raw != undefined;
-  const typeIncludes = !raw ? {
-    include: [
-      {
-        model: db.assetCategory,
-        as: "category",
-        attributes: ["name"],
-      },
-      {
-        model: db.assetField,
-        as: "identifier",
-        attributes: ["label"],
-        required: false,
-        include: {
-          model: db.assetData,
-          as: "assetData",
-          attributes: ["value"],
-          required: false,
-          where: db.Sequelize.where(db.Sequelize.col("type->identifier->assetData.assetId"), db.Sequelize.col("asset.id")),
-        },
-      },
-    ],
-  } : {};
+  const typeIncludes = !raw ? this.displayAssetIncludes(req.requestingUser.dataValues.viewableCategories)[0].include : [];
   const assetIncludes = !raw ? [
-    {
-      model: db.room,
-      as: "location",
-      attributes: ["name"],
-      include: {
-        model: db.building,
-        as: "building",
-        attributes: ["abbreviation"],
-      },
-    },
-    {
-      model: db.alert,
-      as: "alerts",
-    },
+    ...this.displayAssetIncludes(null, null).slice(1),
   ] : [];
 
   Asset.findAll({
     ...req.paginator,
-    attributes: raw ? [] : ["id"],
+    attributes: raw ? { exclude: [] } : ["id"],
     include: [
       {
         model: db.assetType,
@@ -251,7 +217,7 @@ exports.findAll = (req, res) => {
         attributes: raw ? [] : ["name"],
         required: true,
         where: { categoryId: req.requestingUser.dataValues.viewableCategories },
-        ...typeIncludes,
+        include: typeIncludes,
       },
       ...assetIncludes
     ]
@@ -267,6 +233,7 @@ exports.findAll = (req, res) => {
     res.send(data);
   })
   .catch((err) => {
+    console.log(err)
     res.status(500).send({
       message: "Some error occurred while retrieving assets.",
     });
@@ -279,102 +246,9 @@ exports.findOne = async (req, res) => {
   const full = req.query?.full != undefined;
 
   const typeIncludes = full ? [
-    {
-      model: db.assetField,
-      as: "fields",
-      attributes: {
-        exclude: ["createdAt", "updatedAt"],
-      },
-      include: [
-        {
-          model: db.assetData,
-          as: "assetData",
-          attributes: {
-            exclude: ["assetId", "fieldId", "id"],
-          },
-          required: false,
-          where: {
-            assetId: id,
-          },
-          limit: 1,
-        },
-        {
-          model: db.templateData,
-          as: "templateData",
-          attributes: {
-            exclude: ["templateId", "fieldId", "id"],
-          },
-          required: false,
-          where: {
-            templateId: db.Sequelize.col("asset.templateId"),
-          },
-        },
-      ],
-    },
+    this.fullAssetIncludes(id, req.requestingUser.dataValues.viewableCategories, db.Sequelize.col("asset.templateId"))[0].include,
   ] : [];
-  const assetIncludes = full ? [
-    {
-      model: db.assetTemplate,
-      as: "template",
-      attributes: ["id", "name"],
-    },
-    {
-      model: db.person,
-      as: "borrower",
-      attributes: ["id", "fName", "lName", "email"],
-    },
-    {
-      model: db.room,
-      as: "location",
-      attributes: ["id", "name"],
-      include: {
-        model: db.building,
-        as: "building",
-        attribtues: ["id", "name"],
-      },
-    },
-    {
-      model: db.log,
-      as: "logs",
-      attributes: {
-        exclude: ["assetId", "authorId", "personId", "vendorId"],
-      },
-      include: [
-        {
-          model: db.user,
-          as: "author",
-          attributes: ["id"],
-          include: {
-            model: db.person,
-            as: "person",
-            attributes: ["id", "fName", "lName", "email"],
-          }
-        },
-        {
-          model: db.person,
-          as: "person",
-          attributes: ["id", "fName", "lName", "email"],
-        },
-        {
-          model: db.vendor,
-          as: "vendor",
-          attributes: ["id", "name"],
-        },
-      ],
-    },
-    {
-      model: db.alert,
-      as: "alerts",
-      attributes: {
-        exclude: ["assetId", "typeId"],
-      },
-      include: {
-        model: db.alertType,
-        as: "type",
-        attributes: ["id", "name"],
-      },
-    },
-  ] : [];
+  const assetIncludes = full ? this.fullAssetIncludes(id, null, null).slice(1) : [];
 
   let error = false;
   const asset = await Asset.findByPk(id, {
@@ -600,3 +474,153 @@ exports.delete = async (req, res) => {
 //     });
 //   });
 // };
+
+exports.fullAssetIncludes = (assetId, viewableCategories, templateId) => [
+  {
+    model: db.assetType,
+    as: "type",
+    attributes: ["id", "name", "identifierId"],
+    required: true,
+    where: { categoryId: viewableCategories ?? [] },
+    include: {
+      model: db.assetField,
+      as: "fields",
+      attributes: {
+        exclude: ["createdAt", "updatedAt"],
+      },
+      include: [
+        {
+          model: db.assetData,
+          as: "assetData",
+          attributes: {
+            exclude: ["assetId", "fieldId", "id"],
+          },
+          required: false,
+          where: {
+            assetId: assetId ?? [],
+          },
+          limit: 1,
+        },
+        {
+          model: db.templateData,
+          as: "templateData",
+          attributes: {
+            exclude: ["templateId", "fieldId", "id"],
+          },
+          required: false,
+          where: {
+            templateId: templateId ?? [],
+          },
+        },
+      ],
+    },
+  },
+  {
+    model: db.assetTemplate,
+    as: "template",
+    attributes: ["id", "name"],
+  },
+  {
+    model: db.person,
+    as: "borrower",
+    attributes: ["id", "fName", "lName", "email"],
+  },
+  {
+    model: db.room,
+    as: "location",
+    attributes: ["id", "name"],
+    include: {
+      model: db.building,
+      as: "building",
+      attribtues: ["id", "name"],
+    },
+  },
+  {
+    model: db.log,
+    as: "logs",
+    attributes: {
+      exclude: ["assetId", "authorId", "personId", "vendorId"],
+    },
+    include: [
+      {
+        model: db.user,
+        as: "author",
+        attributes: ["id"],
+        include: {
+          model: db.person,
+          as: "person",
+          attributes: ["id", "fName", "lName", "email"],
+        }
+      },
+      {
+        model: db.person,
+        as: "person",
+        attributes: ["id", "fName", "lName", "email"],
+      },
+      {
+        model: db.vendor,
+        as: "vendor",
+        attributes: ["id", "name"],
+      },
+    ],
+  },
+  {
+    model: db.alert,
+    as: "alerts",
+    attributes: {
+      exclude: ["assetId", "typeId"],
+    },
+    include: {
+      model: db.alertType,
+      as: "type",
+      attributes: ["id", "name"],
+    },
+  },
+];
+
+exports.displayAssetIncludes = (viewableCategories) => [
+  {
+    model: db.assetType,
+    as: "type",
+    attributes: ["id", "name"],
+    required: true,
+    where: { categoryId: viewableCategories ?? [] },
+    include: [
+      {
+        model: db.assetCategory,
+        as: "category",
+        attributes: ["name"],
+      },
+      {
+        model: db.assetField,
+        as: "identifier",
+        attributes: ["label"],
+        required: false,
+        include: {
+          model: db.assetData,
+          as: "assetData",
+          attributes: ["value"],
+          required: false,
+          where: {
+            assetId: db.Sequelize.col("asset.id"),
+          }
+          //db.Sequelize.where(db.Sequelize.col("type->identifier->assetData.assetId"), db.Sequelize.col("asset.id")),
+        },
+      },
+    ],
+  },
+  {
+    model: db.room,
+    as: "location",
+    attributes: ["name"],
+    include: {
+      model: db.building,
+      as: "building",
+      attributes: ["abbreviation"],
+    },
+  },
+  {
+    model: db.alert,
+    as: "alerts",
+  },
+];

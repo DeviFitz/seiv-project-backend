@@ -98,6 +98,13 @@ exports.update = async (req, res) => {
     let changed = false;
     let error = false;
     const target = await Group.findByPk(id, { transaction: t });
+    if (target?.dataValues?.name?.trim() == "Super User") {
+      res.status(400).send({
+        message: "Error: cannot alter Super User group!",
+      });
+      throw new Error();
+    }
+
     target.save({...(req.body ?? {}), transaction: t })
     .then((num) => {
       changed = num > 0;

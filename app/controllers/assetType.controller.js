@@ -95,7 +95,7 @@ exports.update = async (req, res) => {
 
   const t = await db.sequelize.transaction();
   const setFields = Array.isArray(req.body?.fields);
-  const includes = setFields ? {
+  const includes = setFields || (req.body?.identifierId !== undefined) ? {
     include: {
       model: db.assetField,
       as: "fields",
@@ -126,6 +126,14 @@ exports.update = async (req, res) => {
     // Ensure that if identifier field is changed to a new one, its attributes are adjusted properly and its template data are deleted
     if (assetType.dataValues.identifierId != req.body?.identifierId && !isNaN(parseInt(req.body?.identifierId)))
     {
+      const newIdentifier = assetType.dataValues.fields.find(field => field.dataValues.id == req.body.identifierId);
+      if (!newIdentifier) {
+        res.status(400).send({
+          message: `Error updating identifier for asset type with id=${id}! Identifier does not belong to asset type!`,
+        });
+        throw new Error();
+      }
+
       await db.templateData.destroy({
         where: {
           fieldId: req.body.identifierId,
@@ -175,7 +183,8 @@ exports.update = async (req, res) => {
         values.add(currData.value);
       }
 
-      await db.assetField.update({ required: true, templateField: false }, { where: { id: req.body.identifierId }, transaction: t })
+      newIdentifier.set({ required: true, templateField: false });
+      await newIdentifier.save({ transaction: t })
       .catch(err => {
         error = true;
         res.status(500).send({
@@ -193,11 +202,18 @@ exports.update = async (req, res) => {
 
       // Validates to make sure that all fields do not collide with one another
       const fields = req.body.fields.map(field => {
-        return {
+        const result = {
           ...(existingFields?.find(existing => existing.id == field.id || existing.label == field.label) ?? {}),
           ...field,
           assetTypeId: id,
         };
+
+        if (result.id == (req.body?.identifierId ?? assetType.dataValues.identifierId)) {
+          result.required = true;
+          result.templateField = false;
+        }
+
+        return result;
       });
       const deleteFields = existingFields?.filter(field => !fields.find(updated => updated.id == field.id))?.map(field => field.id) ?? [];
 

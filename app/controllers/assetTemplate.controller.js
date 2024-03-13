@@ -140,6 +140,9 @@ exports.update = async (req, res) => {
     },
   } : {};
 
+  // Disallow switching types so that we can't have weird template behavior
+  if (req.body?.assetTypeId !== undefined) delete req.body.assetTypeId;
+
   try {
     const target = await AssetTemplate.findByPk(id, {
       include: {

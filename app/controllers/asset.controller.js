@@ -178,6 +178,7 @@ exports.create = async (req, res) => {
     })
     .then(data => {
       result = data;
+      result.dataValues.type.dataValues.fields.forEach(field => field.dataValues.assetData = field.dataValues.assetData?.[0] ?? null);
     })
     .catch(err => {
       console.log(err)
@@ -200,12 +201,6 @@ exports.create = async (req, res) => {
 
 // Retrieve all Assets from the database.
 exports.findAll = (req, res) => {
-  // Unless raw:
-  // 1) get category --
-  // 2) get type --
-  // 3) get identifier --
-  // 4) get location
-  // 5) get alerts
   const raw = req.query?.raw != undefined;
   const typeIncludes = !raw ? {
     include: [
@@ -217,17 +212,29 @@ exports.findAll = (req, res) => {
       {
         model: db.assetField,
         as: "identifier",
-        attributes: [],
+        attributes: ["label"],
+        required: false,
         include: {
           model: db.assetData,
           as: "assetData",
           attributes: ["value"],
-          where: { assetId: "$asset.id$" },
+          required: false,
+          where: db.Sequelize.where(db.Sequelize.col("type->identifier->assetData.assetId"), db.Sequelize.col("asset.id")),
         },
       },
     ],
   } : {};
   const assetIncludes = !raw ? [
+    {
+      model: db.room,
+      as: "location",
+      attributes: ["name"],
+      include: {
+        model: db.building,
+        as: "building",
+        attributes: ["abbreviation"],
+      },
+    },
     {
       model: db.alert,
       as: "alerts",
@@ -236,6 +243,7 @@ exports.findAll = (req, res) => {
 
   Asset.findAll({
     ...req.paginator,
+    attributes: raw ? [] : ["id"],
     include: [
       {
         model: db.assetType,
@@ -248,47 +256,153 @@ exports.findAll = (req, res) => {
       ...assetIncludes
     ]
   })
-  .then((data) => {
+  .then(async (data) => {
+    if (!raw) {
+      data.forEach(asset => {
+        if (!!asset.dataValues.type.dataValues.identifier?.dataValues?.assetData)
+          asset.dataValues.type.dataValues.identifier.dataValues.assetData = asset.dataValues.type.dataValues.identifier.dataValues.assetData?.[0] ?? null;
+      })
+    }
+
     res.send(data);
   })
   .catch((err) => {
     res.status(500).send({
-      message: err.message || "Some error occurred while retrieving assets.",
+      message: "Some error occurred while retrieving assets.",
     });
   });
 };
 
 // Find a single Asset with an id
-exports.findOne = (req, res) => {
+exports.findOne = async (req, res) => {
   const id = req.params.id;
+  const full = req.query?.full != undefined;
 
-  // If getting the full asset,
-  // 1) Insert any new data which was added through the asset type (with some default text to make them aware)
-  // 2) Update any necessary values based on the template which the asset belongs to (if any)
-
-  Asset.findByPk(id, {
-    include: {
-      model: db.assetType,
-      as: "type",
-      attributes: [],
-      required: true,
-      where: { categoryId: req.requestingUser.dataValues.viewableCategories },
+  const typeIncludes = full ? [
+    {
+      model: db.assetField,
+      as: "fields",
+      attributes: {
+        exclude: ["createdAt", "updatedAt"],
+      },
+      include: [
+        {
+          model: db.assetData,
+          as: "assetData",
+          attributes: {
+            exclude: ["assetId", "fieldId", "id"],
+          },
+          required: false,
+          where: {
+            assetId: id,
+          },
+          limit: 1,
+        },
+        {
+          model: db.templateData,
+          as: "templateData",
+          attributes: {
+            exclude: ["templateId", "fieldId", "id"],
+          },
+          required: false,
+          where: {
+            templateId: db.Sequelize.col("asset.templateId"),
+          },
+        },
+      ],
     },
-  })
-  .then((data) => {
-    if (data) {
-      res.send(data);
-    } else {
-      res.status(404).send({
-        message: `Cannot find asset with id=${id}. Maybe asset was not found or user is unauthorized!`,
-      });
+  ] : [];
+  const assetIncludes = full ? [
+    {
+      model: db.assetTemplate,
+      as: "template",
+      attributes: ["id", "name"],
+    },
+    {
+      model: db.log,
+      as: "logs",
     }
+  ] : [];
+
+  let error = false;
+  const asset = await Asset.findByPk(id, {
+    include: [
+      {
+        model: db.assetType,
+        as: "type",
+        attributes: full ? ["name", "identifierId"] : [],
+        required: true,
+        where: { categoryId: req.requestingUser.dataValues.viewableCategories },
+        include: typeIncludes,
+      },
+      ...assetIncludes,
+    ],
   })
   .catch((err) => {
+    error = true;
     res.status(500).send({
       message: "Error retrieving asset with id=" + id,
     });
   });
+
+  if (error) return;
+
+  if (!asset) return res.status(404).send({
+    message: `Cannot find asset with id=${id}. Maybe asset was not found or user is unauthorized!`,
+  });
+
+  asset.dataValues?.type?.dataValues?.fields
+  ?.forEach(field => {
+    field.dataValues.templateData = field.dataValues.templateData?.[0] ?? null;
+    field.dataValues.assetData = !field.dataValues.templateData ? field.dataValues.assetData?.[0] ?? null : null;
+  });
+
+  const missingData = asset.dataValues?.type?.dataValues?.fields
+  ?.filter(field => field.dataValues.required && !field.dataValues.assetData && !field.dataValues.templateData)
+  ?.map(field => {
+    return {
+      assetId: id,
+      fieldId: field.dataValues.id,
+    };
+  }) ?? [];
+
+  if (full && missingData.length > 0) {
+    const t = await db.sequelize.transaction();
+
+    try {
+      const newData = await db.assetData.bulkCreate(missingData, { transaction: t });
+      
+      if (!newData) {
+        res.status(500).send({
+          message: "Error auto-filling required fields!",
+        });
+        throw new Error();
+      }
+      
+      newData.forEach(data => {
+        const owningField = asset.dataValues.type.dataValues.fields.find(field => field.dataValues.id == data.dataValues.fieldId);
+        if (!owningField) return error = true;
+        delete data.dataValues.id;
+        delete data.dataValues.fieldId;
+        delete data.dataValues.assetId;
+        owningField.dataValues.assetData = data;
+      });
+
+      if (error) {
+        res.status(500).send({
+          message: "Error auto-filling required fields!",
+        });
+        throw new Error();
+      }
+
+      await t.commit();
+    }
+    catch {
+      return t.rollback();
+    }
+  }
+
+  res.send(asset);
 };
 
 // Update an Asset by the id in the request

@@ -46,18 +46,24 @@ db.alert.belongsTo(
   db.alertType,
   { 
     as: "type",
-    foreignKey: { allowNull: false },
+    foreignKey: {
+      name: "typeId",
+      allowNull: false,
+    },
     onDelete: "CASCADE",
-    hooks: true
+    hooks: true,
   }
 );
 db.alert.belongsTo(
   db.asset,
   { 
     as: "asset",
-    foreignKey: { allowNull: false },
+    foreignKey: {
+      name: "assetId",
+      allowNull: false,
+    },
     onDelete: "CASCADE",
-    hooks: true
+    hooks: true,
   }
 );
 
@@ -69,36 +75,48 @@ db.asset.belongsTo(
   db.assetTemplate,
   { 
     as: "template",
-    foreignKey: { allowNull: true },
+    foreignKey: {
+      name: "templateId",
+      allowNull: true,
+    },
     onDelete: "RESTRICT",
-    hooks: true 
+    hooks: true,
   }
 );
 db.asset.belongsTo(
   db.assetType,
   { 
     as: "type",
-    foreignKey: { allowNull: false },
+    foreignKey: {
+      name: "typeId",
+      allowNull: false,
+    },
     onDelete: "RESTRICT",
-    hooks: true 
+    hooks: true,
   }
 );
 db.asset.belongsTo(
   db.person,
   { 
     as: "borrower",
-    foreignKey: { allowNull: true },
+    foreignKey: {
+      name: "borrowerId",
+      allowNull: true,
+    },
     onDelete: "RESTRICT",
-    hooks: true 
+    hooks: true,
   }
 );
 db.asset.belongsTo(
   db.room,
   { 
     as: "location",
-    foreignKey: { allowNull: true },
+    foreignKey: {
+      name: "locationId",
+      allowNull: true,
+    },
     onDelete: "RESTRICT",
-    hooks: true 
+    hooks: true,
   }
 );
 db.asset.hasMany(
@@ -110,11 +128,28 @@ db.asset.hasMany(
 );
 db.asset.hasMany(
   db.assetData,
-  { 
+  {
     as: "data",
-    foreignKey: "assetId",
+    foreignKey: { 
+      name: "assetId",
+      allowNull: false,
+    },
+    onDelete: "CASCADE",
+    hooks: true,
   }
 );
+db.asset.hasMany(
+  db.log,
+  {
+    as: "logs",
+    foreignKey: {
+      name: "assetId",
+      allowNull: false,
+    },
+    onDelete: "CASCADE",
+    hooks: true,
+  }
+)
 
 // Foreign keys for Asset Category
 // None!
@@ -124,18 +159,19 @@ db.assetData.belongsTo(
   db.asset,
   { 
     as: "asset",
-    foreignKey: { allowNull: false },
-    onDelete: "CASCADE",
-    hooks: true 
+    foreignKey: "assetId",
   }
 );
 db.assetData.belongsTo(
   db.assetField,
   { 
     as: "field",
-    foreignKey: { allowNull: false },
+    foreignKey: {
+      name: "fieldId",
+      allowNull: false,
+    },
     onDelete: "CASCADE",
-    hooks: true 
+    hooks: true,
   }
 );
 
@@ -144,18 +180,24 @@ db.assetField.belongsTo(
   db.assetType,
   { 
     as: "assetType",
-    foreignKey: { allowNull: false },
+    foreignKey: {
+      name: "assetTypeId",
+      allowNull: false,
+    },
     onDelete: "CASCADE",
-    hooks: true 
+    hooks: true,
   }
 );
 db.assetField.belongsTo(
   db.fieldList,
   { 
     as: "fieldList",
-    foreignKey: { allowNull: true },
+    foreignKey: {
+      name: "fieldListId",
+      allowNull: true,
+    },
     onDelete: "RESTRICT",
-    hooks: true 
+    hooks: true,
   }
 );
 db.assetField.hasMany(
@@ -169,7 +211,12 @@ db.assetField.hasMany(
   db.templateData,
   { 
     as: "templateData",
-    foreignKey: "fieldId",
+    foreignKey: {
+      name: "fieldId",
+      allowNull: false,
+    },
+    onDelete: "CASCADE",
+    hooks: true,
   }
 );
 
@@ -178,16 +225,24 @@ db.assetTemplate.belongsTo(
   db.assetType,
   { 
     as: "assetType",
-    foreignKey: { allowNull: false },
+    foreignKey: {
+      name: "assetTypeId",
+      allowNull: false,
+    },
     onDelete: "RESTRICT",
-    hooks: true 
+    hooks: true,
   }
 );
 db.assetTemplate.hasMany(
   db.templateData,
   { 
     as: "data",
-    foreignKey: "templateId",
+    foreignKey: {
+      name: "templateId",
+      allowNull: false,
+    },
+    onDelete: "CASCADE",
+    hooks: true,
   }
 );
 
@@ -196,18 +251,24 @@ db.assetType.belongsTo(
   db.assetCategory,
   { 
     as: "category",
-    foreignKey: { allowNull: false },
+    foreignKey: {
+      name: "categoryId",
+      allowNull: false,
+    },
     onDelete: "RESTRICT",
-    hooks: true 
+    hooks: true,
   }
 );
 db.assetType.belongsTo(
   db.assetField,
   { 
     as: "identifier",
-    foreignKey: { allowNull: true },
+    foreignKey: {
+      name: "identifierId",
+      allowNull: true,
+    },
     onDelete: "CASCADE",
-    hooks: true 
+    hooks: true,
   }
 );
 db.assetType.hasMany(
@@ -223,16 +284,24 @@ db.building.belongsTo(
   db.asset,
   { 
     as: "asset",
-    foreignKey: { allowNull: false },
+    foreignKey: {
+      name: "assetId",
+      allowNull: false,
+    },
     onDelete: "CASCADE",
-    hooks: true 
+    hooks: true,
   }
 );
 db.building.hasMany(
   db.room,
   { 
     as: "rooms",
-    foreignKey: "buildingId",
+    foreignKey: {
+      name: "buildingId",
+      allowNull: false,
+    },
+    onDelete: "RESTRICT",
+    hooks: true,
   }
 );
 
@@ -244,9 +313,12 @@ db.fieldListOption.belongsTo(
   db.fieldList,
   { 
     as: "list",
-    foreignKey: { allowNull: false },
+    foreignKey: {
+      name: "listId",
+      allowNull: false,
+    },
     onDelete: "CASCADE",
-    hooks: true 
+    hooks: true,
   }
 );
 
@@ -261,36 +333,43 @@ db.log.belongsTo(
   db.asset,
   { 
     as: "asset",
-    foreignKey: { allowNull: false },
-    onDelete: "CASCADE",
-    hooks: true 
+    foreignKey: "assetId",
   }
 );
 db.log.belongsTo(
   db.user,
   { 
     as: "author",
-    foreignKey: { allowNull: false },
+    foreignKey: {
+      name: "authorId",
+      allowNull: false,
+    },
     onDelete: "RESTRICT",
-    hooks: true 
+    hooks: true,
   }
 );
 db.log.belongsTo(
   db.person,
   { 
     as: "person",
-    foreignKey: { allowNull: true },
+    foreignKey: {
+      name: "personId",
+      allowNull: true,
+    },
     onDelete: "RESTRICT",
-    hooks: true 
+    hooks: true,
   }
 );
 db.log.belongsTo(
   db.vendor,
   { 
     as: "vendor",
-    foreignKey: { allowNull: true },
+    foreignKey: {
+      name: "vendorId",
+      allowNull: true,
+    },
     onDelete: "RESTRICT",
-    hooks: true 
+    hooks: true,
   }
 );
 
@@ -299,9 +378,12 @@ db.notification.belongsTo(
   db.user,
   { 
     as: "user",
-    foreignKey: { allowNull: false },
+    foreignKey: {
+      name: "userId",
+      allowNull: false,
+    },
     onDelete: "CASCADE",
-    hooks: true
+    hooks: true,
   }
 );
 
@@ -310,9 +392,12 @@ db.permission.belongsTo(
   db.assetCategory,
   {
     as: "category",
-    foreignKey: { allowNull: true },
+    foreignKey: {
+      name: "categoryId",
+      allowNull: true,
+    },
     onDelete: "CASCADE",
-    hooks: true
+    hooks: true,
   }
 );
 
@@ -328,7 +413,12 @@ db.person.hasOne(
   db.user,
   { 
     as: "user",
-    foreignKey: "personId",
+    foreignKey: {
+      name: "personId",
+      allowNull: false,
+    },
+    onDelete: "CASCADE",
+    hooks: true,
   }
 );
 
@@ -337,9 +427,7 @@ db.room.belongsTo(
   db.building,
   { 
     as: "building",
-    foreignKey: { allowNull: false },
-    onDelete: "RESTRICT",
-    hooks: true 
+    foreignKey: "buildingId",
   }
 );
 
@@ -348,9 +436,12 @@ db.session.belongsTo(
   db.user,
   { 
     as: "user",
-    foreignKey: { allowNull: false },
+    foreignKey: {
+      name: "userId",
+      allowNull: false,
+    },
     onDelete: "CASCADE",
-    hooks: true 
+    hooks: true,
   }
 );
 
@@ -359,18 +450,14 @@ db.templateData.belongsTo(
   db.assetTemplate,
   { 
     as: "template",
-    foreignKey: { allowNull: false },
-    onDelete: "RESTRICT",
-    hooks: true 
+    foreignKey: "templateId",
   }
 );
 db.templateData.belongsTo(
   db.assetField,
   { 
     as: "field",
-    foreignKey: { allowNull: false },
-    onDelete: "CASCADE",
-    hooks: true 
+    foreignKey: "fieldId",
   }
 );
 
@@ -379,9 +466,12 @@ db.user.belongsTo(
   db.group,
   { 
     as: "group",
-    foreignKey: { allowNull: true },
+    foreignKey: {
+      name: "groupId",
+      allowNull: true,
+    },
     onDelete: "RESTRICT",
-    hooks: true 
+    hooks: true,
   }
 );
 db.user.belongsToMany(
@@ -392,9 +482,7 @@ db.user.belongsTo(
   db.person,
   { 
     as: "person",
-    foreignKey: { allowNull: false },
-    onDelete: "CASCADE",
-    hooks: true 
+    foreignKey: "personId",
   }
 );
 

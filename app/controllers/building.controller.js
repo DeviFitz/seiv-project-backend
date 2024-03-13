@@ -63,14 +63,19 @@ exports.findAll = (req, res) => {
 exports.findOne = (req, res) => {
   const id = req.params.id;
 
-  const includes = req.query?.full != undefined ? {
-    include: {
+  const includes = req.query?.full != undefined ? [
+    {
       model: db.room,
       as: "rooms"
-    }
-  } : {};
+    },
+    {
+      model: db.asset,
+      as: "asset",
+      attributes: ["id"],
+    },
+  ] : [];
 
-  Building.findByPk(id, { ...includes })
+  Building.findByPk(id, { include: includes })
   .then((data) => {
     if (data) {
       res.send(data);
@@ -128,13 +133,12 @@ exports.update = (req, res) => {
 // Delete a Building with the specified id in the request
 exports.delete = async (req, res) => {
   const id = req.params.id;
-  const type = await Building.findByPk(id, {
-    attributes: [],
+  const building = await Building.findByPk(id, {
+    attributes: ["id"],
     include: {
       model: db.asset,
       as: "asset",
       attributes: ["id"],
-      raw: true,
       required: true,
       include: {
         model: db.assetType,
@@ -142,18 +146,15 @@ exports.delete = async (req, res) => {
         attributes: [],
         where: { categoryId: req.requestingUser.dataValues.deletableCategories },
         required: true,
-        raw: true,
       },
     },
   });
 
-  if (!type) return res.status(404).send({
+  if (!building) return res.status(404).send({
     message: "Error deleting building! Maybe building was not found or user is unauthorized.",
   });
 
-  db.asset.destroy({
-    where: { id: type.dataValues.asset.dataValues.id },
-  })
+  building.dataValues.asset.destroy()
   .then((num) => {
     if (num > 0) {
       res.send({

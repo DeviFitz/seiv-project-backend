@@ -319,18 +319,73 @@ exports.findOne = async (req, res) => {
       attributes: ["id", "name"],
     },
     {
+      model: db.person,
+      as: "borrower",
+      attributes: ["id", "fName", "lName", "email"],
+    },
+    {
+      model: db.room,
+      as: "location",
+      attributes: ["id", "name"],
+      include: {
+        model: db.building,
+        as: "building",
+        attribtues: ["id", "name"],
+      },
+    },
+    {
       model: db.log,
       as: "logs",
-    }
+      attributes: {
+        exclude: ["assetId", "authorId", "personId", "vendorId"],
+      },
+      include: [
+        {
+          model: db.user,
+          as: "author",
+          attributes: ["id"],
+          include: {
+            model: db.person,
+            as: "person",
+            attributes: ["id", "fName", "lName", "email"],
+          }
+        },
+        {
+          model: db.person,
+          as: "person",
+          attributes: ["id", "fName", "lName", "email"],
+        },
+        {
+          model: db.vendor,
+          as: "vendor",
+          attributes: ["id", "name"],
+        },
+      ],
+    },
+    {
+      model: db.alert,
+      as: "alerts",
+      attributes: {
+        exclude: ["assetId", "typeId"],
+      },
+      include: {
+        model: db.alertType,
+        as: "type",
+        attributes: ["id", "name"],
+      },
+    },
   ] : [];
 
   let error = false;
   const asset = await Asset.findByPk(id, {
+    attributes: {
+      exclude: full ? ["templateId", "typeId", "borrowerId", "locationId"] : [],
+    },
     include: [
       {
         model: db.assetType,
         as: "type",
-        attributes: full ? ["name", "identifierId"] : [],
+        attributes: full ? ["id", "name", "identifierId"] : [],
         required: true,
         where: { categoryId: req.requestingUser.dataValues.viewableCategories },
         include: typeIncludes,
@@ -406,35 +461,89 @@ exports.findOne = async (req, res) => {
 };
 
 // Update an Asset by the id in the request
-exports.update = (req, res) => {
+exports.update = async (req, res) => {
   const id = req.params.id;
 
-  Asset.update(req.body, {
-    where: { id },
-    include: {
-      model: db.assetType,
-      as: "type",
-      attributes: [],
-      required: true,
-      where: { categoryId: req.requestingUser.dataValues.editableCategories },
+  if (req.body?.typeId !== undefined) delete req.body.typeId;
+
+  const setData = req.body?.type?.fields !== undefined;
+  const typeIncludes = setData || req.body?.templateId === null ? [
+    {
+      model: db.assetField,
+      as: "fields",
+      attributes: ["id", "label", "required"],
+      include: [
+        {
+          model: db.assetData,
+          as: "assetData",
+          required: false,
+          where: { assetId: id },
+        },
+        {
+          model: db.templateData,
+          as: "templateData",
+          required: false,
+          where: { templateId: db.Sequelize.col("asset.templateId") },
+        },
+      ],
     },
-  })
-  .then((num) => {
-    if (num > 0) {
-      res.send({
-        message: "Asset was updated successfully.",
-      });
-    } else {
-      res.send({
-        message: `Cannot update asset with id=${id}. Maybe asset was not found, req.body is empty, or user is unauthorized!`,
-      });
-    }
-  })
-  .catch((err) => {
-    res.status(500).send({
-      message: "Error updating asset with id=" + id,
+  ] : [];
+
+  const t = await db.sequelize.transaction();
+  let error = false;
+
+  try {
+    const target = await Asset.findByPk(id, {
+      where: { id },
+      transaction: t,
+      include: {
+        model: db.assetType,
+        as: "type",
+        attributes: ["id"],
+        required: true,
+        where: { categoryId: req.requestingUser.dataValues.editableCategories },
+        include: typeIncludes,
+      },
     });
-  });
+
+    if (!target) {
+      res.status(404).send({
+        message: "Asset not found!",
+      });
+      throw new Error();
+    }
+
+    const removedTemplate = target.dataValues.templateId !== null && req.body?.templateId === null;
+    if (setData || removedTemplate) {
+      console.log(target.get({plain:true}))
+      
+      // Ignore any empty fields
+      // Match req.body.fields to target.dataValues.fields
+      // If removing the template from the asset, ensure that any required fields are filled out at the same time
+    }
+
+    target.set(req.body);
+    await target.save({ transaction: t })
+    .catch((err) => {
+      error = true;
+      res.status(500).send({
+        message: "Error updating asset with id=" + id,
+      });
+    });
+    
+    if (error) throw new Error();
+    
+    await t.commit();
+    
+    res.send({
+      message: "Asset was updated successfully.",
+    });
+  }
+  catch (err) {
+    console.log("Whoops!")
+    console.log(err)
+    t.rollback();
+  }
 };
 
 // Delete an Asset with the specified id in the request

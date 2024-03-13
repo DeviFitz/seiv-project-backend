@@ -220,6 +220,34 @@ exports.update = async (req, res) => {
       }
       
       if (removeData.length > 0) {
+        // If at least one of the deleted data is required, check to see if any assets depend on it
+        const requiredData = removeData.filter(dataId => target.dataValues.assetType.dataValues.fields
+          .some(field => field.dataValues.required && field.dataValues.templateData?.dataValues?.id == dataId));
+        if (requiredData.length > 0)
+        {
+          const assets = await db.asset.findAll({
+            attributes: ["id"],
+            where: {
+              templateId: id,
+            },
+            limit: 1,
+          });
+  
+          if (!assets) {
+            res.status(500).send({
+              message: "Error checking if deleted template data has dependents!",
+            });
+            throw new Error();
+          }
+
+          if (assets.length > 0) {
+            res.status(400).send({
+              message: "Error deleting template data as it is required and at least one asset depends on it!",
+            });
+            throw new Error();
+          }
+        }
+
         await db.templateData.destroy({
           where: { id: removeData },
           transaction: t,

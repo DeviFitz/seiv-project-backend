@@ -439,7 +439,7 @@ exports.update = async (req, res) => {
         
         field.assetData = {
           ...(correspondingField.assetData?.[0] ?? {}),
-          ...field.assetData,
+          ...(field.assetData?.[0] ?? field.assetData ?? {}),
           fieldId: field.id,
           assetId: id,
         };

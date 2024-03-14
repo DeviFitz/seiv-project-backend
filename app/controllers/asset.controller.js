@@ -59,6 +59,8 @@ exports.create = async (req, res) => {
     if (error) throw new Error();
 
     const data = req.body.type?.fields?.filter(field => {
+      if (!type.dataValues.fields?.find(typeField => typeField.dataValues.id == field.id)) return false;
+
       field.assetData = {
         ...(field.assetData ?? {}),
         assetId: result.id,
@@ -86,8 +88,6 @@ exports.create = async (req, res) => {
         });  
         throw new Error();
       }
-
-      console.log(template)
 
       // Overwrite all asset data that a template data already handles
       template.data.forEach(templateData => {
@@ -284,10 +284,15 @@ exports.findOne = async (req, res) => {
     message: `Cannot find asset with id=${id}. Maybe asset was not found or user is unauthorized!`,
   });
 
+  const overwrittenData = [];
   asset.dataValues?.type?.dataValues?.fields
   ?.forEach(field => {
     field.dataValues.templateData = field.dataValues.templateData?.[0] ?? null;
     field.dataValues.assetData = field.dataValues.assetData?.[0] ?? null;
+    if (field.dataValues.templateData !== null && field.dataValues.assetData !== null) {
+      field.dataValues.assetData = null;
+      overwrittenData.push(field.dataValues.id);
+    }
   });
 
   const missingData = asset.dataValues?.type?.dataValues?.fields
@@ -299,33 +304,57 @@ exports.findOne = async (req, res) => {
     };
   }) ?? [];
 
-  if (full && missingData.length > 0) {
+  if (full && (missingData.length > 0 || overwrittenData.length > 0)) {
     const t = await db.sequelize.transaction();
 
     try {
-      const newData = await db.assetData.bulkCreate(missingData, { transaction: t });
-      
-      if (!newData) {
-        res.status(500).send({
-          message: "Error auto-filling required fields!",
+      // If any asset data is required and incomplete, create placeholder data
+      if (missingData.length > 0)
+      {
+        const newData = await db.assetData.bulkCreate(missingData, { transaction: t });
+        
+        if (!newData) {
+          res.status(500).send({
+            message: "Error auto-filling required fields!",
+          });
+          throw new Error();
+        }
+        
+        newData.forEach(data => {
+          const owningField = asset.dataValues.type.dataValues.fields.find(field => field.dataValues.id == data.dataValues.fieldId);
+          if (!owningField) return error = true;
+          delete data.dataValues.id;
+          delete data.dataValues.fieldId;
+          delete data.dataValues.assetId;
+          owningField.dataValues.assetData = data;
         });
-        throw new Error();
+  
+        if (error) {
+          res.status(500).send({
+            message: "Error auto-filling required fields!",
+          });
+          throw new Error();
+        }
       }
-      
-      newData.forEach(data => {
-        const owningField = asset.dataValues.type.dataValues.fields.find(field => field.dataValues.id == data.dataValues.fieldId);
-        if (!owningField) return error = true;
-        delete data.dataValues.id;
-        delete data.dataValues.fieldId;
-        delete data.dataValues.assetId;
-        owningField.dataValues.assetData = data;
-      });
 
-      if (error) {
-        res.status(500).send({
-          message: "Error auto-filling required fields!",
+      // If any asset data is overwritten by a template, delete it
+      if (overwrittenData.length > 0)
+      {
+        await db.assetData.destroy({
+          transaction: t,
+          where: {
+            assetId: id,
+            fieldId: overwrittenData,
+          },
+        })
+        .catch(err => {
+          error = true;
+          res.status(500).send({
+            message: "Error deleting overwritten asset data!",
+          });
         });
-        throw new Error();
+
+        if (error) throw new Error();
       }
 
       await t.commit();
@@ -340,15 +369,15 @@ exports.findOne = async (req, res) => {
 
 // Update an Asset by the id in the request
 exports.update = async (req, res) => {
-  const id = req.params.id;
-  if (isNaN(parseInt(id))) return res.status(400).send({
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).send({
     message: "Invalid asset id!",
   });
 
   if (req.body?.typeId !== undefined) delete req.body.typeId;
 
   const setData = req.body?.type?.fields !== undefined;
-  const typeIncludes = setData || req.body?.templateId === null ? [
+  const typeIncludes = setData || req.body?.templateId !== undefined ? [
     {
       model: db.assetField,
       as: "fields",
@@ -380,7 +409,7 @@ exports.update = async (req, res) => {
       include: {
         model: db.assetType,
         as: "type",
-        attributes: ["id"],
+        attributes: ["id", ...(req.body?.templateId !== undefined ? ["identifierId"] : [])],
         required: true,
         where: { categoryId: req.requestingUser.dataValues.editableCategories },
         include: typeIncludes,
@@ -394,15 +423,167 @@ exports.update = async (req, res) => {
       throw new Error();
     }
 
-    const removedTemplate = target.dataValues.templateId !== null && req.body?.templateId === null;
-    if (setData || removedTemplate) {
-      console.log(target.get({plain:true}))
-      
-      // Ignore any non-existing empty fields
+    const changedTemplate = req.body?.templateId && target.dataValues.templateId != req.body.templateId;
+    if (setData || changedTemplate) {
       // Match req.body.fields to target.dataValues.fields
-      // If removing the template from the asset, ensure that any required fields are filled out at the same time
+      const simplifiedTarget = target.get({ plain: true });
+      // This is to ensure that there are no duplicate entries
+      const completedFieldIds = new Set();
+      const filledFields = req.body?.type?.fields?.filter(field => {
+        const fieldId = parseInt(field.id);
+        if (!field.assetData?.value || isNaN(fieldId) || completedFieldIds.has(fieldId)) return false;
 
+        // The field must match an existing one for the asset type
+        const correspondingField = simplifiedTarget.type.fields.find(targetField => field.id == targetField.id);
+        if (!correspondingField) return false;
+        
+        field.assetData = {
+          ...(correspondingField.assetData?.[0] ?? {}),
+          ...field.assetData,
+          fieldId: field.id,
+          assetId: id,
+        };
+        field.assetData.value = field.assetData.value.trim();
+
+        // Make sure the field is not empty
+        const valid = field.assetData.value.length > 0;
+        if (valid) completedFieldIds.add(fieldId);
+        return valid;
+      }) ?? [];
+      const requiredFields = simplifiedTarget.type.fields.filter(field => field.required);
+
+      // Determine what fields should be deleted
+      const deletingFieldIds = simplifiedTarget.type.fields
+      .filter(field => !!field?.assetData && !filledFields.find(filledField => filledField.id == field.id))
+      .map(field => field.id);
+      
+      if (req.body?.templateId !== undefined && isNaN(parseInt(req.body.templateId))) {
+        res.status(400).send({
+          message: "Error updating asset template! Invalid template id.",
+        });
+        throw new Error();
+      }
+      // If changing the template, ensure that any required fields are filled out at the same time
+      const templateFields = [];
+      const template = await db.assetTemplate.findByPk(req.body?.templateId ?? simplifiedTarget.templateId, {
+        attributes: ["assetTypeId"],
+        include: {
+          model: db.templateData,
+          as: "data",
+        },
+      })
+      .catch(err => {
+        error = true;
+        res.status(500).send({
+          message: "Error retrieving asset template!",
+        });
+      });
+      
+      if (error) throw new Error();
+      
+      if (!!template) {
+        // Make sure that the template belongs to the asset type
+        if (template.dataValues.assetTypeId != simplifiedTarget.type.id)
+        {
+          res.status(400).send({
+            message: "Error updating asset template! Asset template does not have the same asset type.",
+          });
+          throw new Error();
+        }
+
+        template.dataValues.data.forEach(data => {
+          const matchFilled = filledFields.findIndex(field => field.id == data.fieldId);
+          if (matchFilled < 0) return;
+          
+          const removing = filledFields.splice(matchFilled, 1);
+          if (removing.assetData.id != undefined) deletingFieldIds.push(removing);
+        })
+      }
+
+      // Ensure that all required fields have been completed
+      const fieldSum = [...filledFields, ...templateFields];
+      const requiredCompleted = requiredFields.every(reqField => !!fieldSum.find(field => field.id == reqField.id));
+      if (!requiredCompleted) {
+        const message = changedTemplate
+        ? (req.body.templateId === null
+        ? "Error updating asset! Cannot remove template without completing required fields."
+        : "Error updating asset! The asset and new template do not complete all required fields.")
+        : "Error updating asset! Not all required fields are complete.";
+
+        res.status(400).send({ message });
+        throw new Error();
+      }
+      
+      // Ensure that the identifier field is unique to the asset
+      const identifierField = filledFields.find(field => field.id == simplifiedTarget.type.identifierId);
+      if (!!identifierField) {
+        const match = await Asset.findAll({
+          where: {
+            id: {
+              [db.Sequelize.Op.ne]: id,
+            },
+          },
+          include: {
+            model: db.assetData,
+            as: "data",
+            required: true,
+            where: {
+              fieldId: identifierField.id,
+              value: identifierField.assetData.value,
+            },
+          },
+          limit: 1,
+        });
+
+        if (!match) {
+          res.status(500).send({
+            message: "Error validating asset identifier!",
+          });
+          throw new Error();
+        }
+
+        if (match.length > 0) {
+          res.status(400).send({
+            message: "Error updating asset! Asset identifier is not unique.",
+          });
+          throw new Error();
+        }
+      }
+
+      // Update the asset's data
+      await Promise.all(filledFields.map(field => db.assetData.upsert(field.assetData, {
+          transaction: t,
+          where: { id: field.assetData.id },
+          returning: true,
+        })
+        .catch(err => error = true)
+      ));
+
+      if (error) {
+        res.status(500).send({
+          message: "Error updating asset data!",
+        });
+        throw new Error();
+      }
+      
       // Remove any existing asset data being set to empty
+      if (deletingFieldIds.length > 0)
+      {
+        await db.assetData.destroy({
+          transaction: t,
+          where: {
+            id: deletingFieldIds,
+          },
+        })
+        .catch(err => {
+          error = true;
+          res.status(500).send({
+            message: "Error deleting empty asset data!",
+          });
+        });
+
+        if (error) throw new Error();
+      }
     }
 
     target.set(req.body);
@@ -422,9 +603,7 @@ exports.update = async (req, res) => {
       message: "Asset was updated successfully.",
     });
   }
-  catch (err) {
-    console.log("Whoops!")
-    console.log(err)
+  catch {
     t.rollback();
   }
 };

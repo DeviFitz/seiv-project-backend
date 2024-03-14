@@ -1,4 +1,5 @@
 const db = require("../models");
+const { displayAssetIncludes } = require("./asset.controller");
 const Building = db.building;
 
 // Create and Save a new Building
@@ -60,23 +61,49 @@ exports.findAll = (req, res) => {
 };
 
 // Find a single Building with an id
-exports.findOne = (req, res) => {
+exports.findOne = async (req, res) => {
   const id = req.params.id;
   if (isNaN(parseInt(id))) return res.status(400).send({
     message: "Invalid building id!",
   });
 
-  const includes = req.query?.full != undefined ? [
-    {
-      model: db.room,
-      as: "rooms"
-    },
-    {
-      model: db.asset,
-      as: "asset",
-      attributes: ["id"],
-    },
-  ] : [];
+  const full = req.query?.full != undefined;
+  const includes = [];
+  if (full) {
+    const userGroup = !((req.requestingUser.dataValues.groupExpiration ?? undefined) <= new Date()) ?
+    await db.group.findByPk(req.requestingUser.dataValues.groupId)
+    : undefined;
+    req.requestingUser.dataValues.groupPriority = userGroup?.priority;
+    
+    // Get user's permissions
+    const permissions = new Set([
+      ...(await req.requestingUser.getPermissions()),
+      ...((await userGroup?.getPermissions()) ?? [])
+    ]);
+
+    const viewableCats = [...permissions.values()]
+    .filter(permission => !!permission.categoryId && permission.name.match(/View/i)?.length > 0)
+    .map(permission => permission.categoryId);
+
+    includes.push(...[
+      {
+        model: db.room,
+        as: "rooms",
+        include: {
+          model: db.asset,
+          as: "assets",
+          attributes: ["id"],
+          include: displayAssetIncludes(db.Sequelize.col("assets.id"), viewableCats),
+        },
+      },
+      {
+        model: db.asset,
+        as: "asset",
+        attributes: ["id"],
+        include: displayAssetIncludes(null, viewableCats),
+      },
+    ]);
+  }
 
   Building.findByPk(id, { include: includes })
   .then((data) => {

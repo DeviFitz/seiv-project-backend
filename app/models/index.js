@@ -436,6 +436,13 @@ db.room.belongsTo(
     foreignKey: "buildingId",
   }
 );
+db.room.hasMany(
+  db.asset,
+  {
+    as: "assets",
+    foreignKey: "locationId",
+  }
+);
 
 // Foreign keys for Session
 db.session.belongsTo(

@@ -2,35 +2,36 @@ const db = require("../models");
 const Person = db.person;
 const { checkHasPermission, PermTypes } = require("../authorization/authorization");
 const { normalizePermissions } = require("./permission.controller");
+const { displayAssetIncludes } = require("./asset.controller");
 
 // Create and Save a new Person
-exports.create = (req, res) => {
-  // Validate request
-  if (!req.body.fName || !req.body.lName || !req.body.email) {
-    return res.status(400).send({
-      message: "Content cannot be empty!",
-    });
-  }
+// exports.create = (req, res) => {
+//   // Validate request
+//   if (!req.body.fName || !req.body.lName || !req.body.email) {
+//     return res.status(400).send({
+//       message: "Content cannot be empty!",
+//     });
+//   }
 
-  // Create a Person
-  const person = {
-    id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
-  };
+//   // Create a Person
+//   const person = {
+//     id: req.body.id,
+//     fName: req.body.fName,
+//     lName: req.body.lName,
+//     email: req.body.email,
+//   };
 
-  // Save Person in the database
-  Person.create(person)
-  .then((data) => {
-    res.send(data);
-  })
-  .catch((err) => {
-    res.status(500).send({
-      message: err.message || "Some error occurred while creating the person.",
-    });
-  });
-};
+//   // Save Person in the database
+//   Person.create(person)
+//   .then((data) => {
+//     res.send(data);
+//   })
+//   .catch((err) => {
+//     res.status(500).send({
+//       message: err.message || "Some error occurred while creating the person.",
+//     });
+//   });
+// };
 
 // Retrieve all People from the database.
 exports.findAll = (req, res) => {
@@ -54,8 +55,7 @@ exports.findOne = async (req, res) => {
     message: "Invalid person id!",
   });
 
-  let viewableCats;
-
+  const includes = [];
   if (req?.query?.full != undefined)
   {
     const userGroup = !((req.requestingUser.dataValues.groupExpiration ?? undefined) <= new Date()) ?
@@ -70,92 +70,57 @@ exports.findOne = async (req, res) => {
     ]);
 
     req.requestingUser.dataValues.permissions = [...permissions.values()]
-    viewableCats = req.requestingUser.dataValues.permissions
+    const viewableCats = req.requestingUser.dataValues.permissions
     .filter(permission => !!permission.categoryId && permission.name.match(/View/i)?.length > 0)
     .map(permission => permission.categoryId);
-  }
 
-  const includes = req?.query?.full != undefined && checkHasPermission(req, "User", PermTypes.VIEW) ?
-  [
+    if (checkHasPermission(req, "User", PermTypes.VIEW))
     {
-      model: db.user,
-      as: "user",
-      attributes: ["groupExpiration", "blocked"],
-      include: [
+      includes.push(...[
         {
-          model: db.group,
-          as: "group",
-          attributes: ["id", "name"],
-          include: {
-            model: db.permission,
-            attributes: ["name", "categoryId"],
-            through: {
-              model: db.groupPermission,
-              attributes: [],
+          model: db.user,
+          as: "user",
+          attributes: ["groupExpiration", "blocked"],
+          include: [
+            {
+              model: db.group,
+              as: "group",
+              attributes: ["id", "name"],
+              include: {
+                model: db.permission,
+                attributes: ["name", "categoryId"],
+                through: {
+                  model: db.groupPermission,
+                  attributes: [],
+                },
+              }
             },
-          }
+            {
+              model: db.permission,
+              attributes: ["name", "categoryId"],
+              through: {
+                model: db.userPermission,
+                attributes: [],
+              },
+            },
+          ],
         },
-        {
-          model: db.permission,
-          attributes: ["name", "categoryId"],
-          through: {
-            model: db.userPermission,
-            attributes: [],
-          },
-        },
-      ],
-    },
-    {
+      ]);
+    }
+
+    includes.push({
       model: db.asset,
       as: "borrowedAssets",
       attributes: ["id"],
-    },
-  ] : [];
+      required: false,
+      include: displayAssetIncludes(db.Sequelize.col("borrowedAssets.id"), viewableCats),
+    });
+  }
 
   Person.findByPk(id, { include: includes })
   .then(async (data) => {
     if (data) {
-      const temp = normalizePermissions(data.get({ plain: true }));
-      
-      if (!!temp?.borrowedAssets) 
-      {
-        console.log("Running this code!")
-        const assets = await db.asset.findAll({
-          where: {
-            id: temp.borrowedAssets,
-          },
-          include: [
-            {
-              association: "type",
-              attributes: ["name"],
-              where: {
-                categoryId: viewableCats,
-              },
-              required: true,
-              include: {
-                association: "identifier",
-                attributes: [],
-                include: {
-                  association: "assetData",
-                  attributes: ["value"],
-                  where: {
-                    assetId: db.Sequelize.col("asset.id"),
-                  },
-                },
-              },
-            },
-          ],
-        })
-        .catch(err => {
-          console.log(err)
-        });
-
-        assets?.forEach(asset => {
-          asset = asset.get({ plain: true });
-        })
-      }
-
-      res.send(temp);
+      res.send(normalizePermissions(data.get({ plain: true })));
     } else {
       res.status(404).send({
         message: `Cannot find person with id=${id}.`,
@@ -163,6 +128,7 @@ exports.findOne = async (req, res) => {
     }
   })
   .catch((err) => {
+    console.log(err)
     res.status(500).send({
       message: "Error retrieving person with id=" + id,
     });

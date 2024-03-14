@@ -66,13 +66,41 @@ exports.findAll = (req, res) => {
 };
 
 // Find a single Room with an id
-exports.findOne = (req, res) => {
+exports.findOne = async (req, res) => {
   const id = req.params.id;
   if (isNaN(parseInt(id))) return res.status(400).send({
     message: "Invalid room id!",
   });
 
-  Room.findByPk(id)
+  const full = req.body?.full != undefined;
+  let viewableCats = [];
+  if (full) {
+    const userGroup = !((req.requestingUser.dataValues.groupExpiration ?? undefined) <= new Date()) ?
+    await db.group.findByPk(req.requestingUser.dataValues.groupId)
+    : undefined;
+    req.requestingUser.dataValues.groupPriority = userGroup?.priority;
+    
+    // Get user's permissions
+    const permissions = new Set([
+      ...(await req.requestingUser.getPermissions()),
+      ...((await userGroup?.getPermissions()) ?? [])
+    ]);
+
+    req.requestingUser.dataValues.permissions = [...permissions.values()]
+    viewableCats = req.requestingUser.dataValues.permissions
+    .filter(permission => !!permission.categoryId && permission.name.match(/View/i)?.length > 0)
+    .map(permission => permission.categoryId);
+  }
+
+  const includes = req.body?.full != undefined ? [
+    {
+      model: db.asset,
+      as: "assets",
+      include: displayAssetIncludes(db.Sequelize.col("assets.id"), viewableCats),
+    },
+  ] : [];
+
+  Room.findByPk(id, { include: includes })
   .then((data) => {
     if (data) {
       res.send(data);

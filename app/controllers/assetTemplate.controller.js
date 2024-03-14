@@ -282,11 +282,19 @@ exports.update = async (req, res) => {
 
     if (error) throw new Error();
 
+    await t.commit()
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error committing changes to asset template!",
+      });
+    });
+
+    if (error) throw new Error();
+    
     res.send({
       message: "Asset template was updated successfully.",
     });
-
-    await t.commit();
   }
   catch {
     t.rollback();

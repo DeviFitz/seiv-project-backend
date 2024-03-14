@@ -202,7 +202,7 @@ exports.create = async (req, res) => {
 // Retrieve all Assets from the database.
 exports.findAll = (req, res) => {
   const raw = req.query?.raw != undefined;
-  const typeIncludes = !raw ? this.displayAssetIncludes(req.requestingUser.dataValues.viewableCategories)[0].include : [];
+  const typeIncludes = !raw ? this.displayAssetIncludes(null, req.requestingUser.dataValues.viewableCategories)[0].include : [];
   const assetIncludes = !raw ? [
     ...this.displayAssetIncludes(null, null).slice(1),
   ] : [];
@@ -574,7 +574,7 @@ exports.fullAssetIncludes = (assetId, viewableCategories, templateId) => [
   },
 ];
 
-exports.displayAssetIncludes = (viewableCategories) => [
+exports.displayAssetIncludes = (assetId, viewableCategories) => [
   {
     model: db.assetType,
     as: "type",
@@ -598,7 +598,7 @@ exports.displayAssetIncludes = (viewableCategories) => [
           attributes: ["value"],
           required: false,
           where: {
-            assetId: db.Sequelize.col("asset.id"),
+            assetId: assetId ?? db.Sequelize.col("asset.id"),
             //db.Sequelize.where(db.Sequelize.col("type->identifier->assetData.assetId"), db.Sequelize.col("asset.id")),
           }
         },

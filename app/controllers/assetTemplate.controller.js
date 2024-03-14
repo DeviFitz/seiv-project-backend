@@ -66,6 +66,10 @@ exports.findAll = (req, res) => {
 // Find a single AssetTemplate with an id
 exports.findOne = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid asset template id!",
+  });
+
   const full = req?.query?.full != undefined;
 
   const typeInclude = full ? {
@@ -119,6 +123,9 @@ exports.findOne = (req, res) => {
 // Update an AssetTemplate by the id in the request
 exports.update = async (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid asset template id!",
+  });
 
   const t = await db.sequelize.transaction();
   let error = false;
@@ -289,6 +296,10 @@ exports.update = async (req, res) => {
 // Delete an AssetTemplate with the specified id in the request
 exports.delete = async (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid asset template id!",
+  });
+
   const type = await AssetTemplate.findByPk(id, {
     attributes: ["id"],
     include: {
@@ -323,20 +334,3 @@ exports.delete = async (req, res) => {
     });
   });
 };
-
-// Delete all AssetTemplates from the database.
-// exports.deleteAll = (req, res) => {
-//   AssetTemplate.destroy({
-//     where: {},
-//     truncate: false,
-//   })
-//   .then((nums) => {
-//     res.send({ message: `${nums} asset templates were deleted successfully!` });
-//   })
-//   .catch((err) => {
-//     res.status(500).send({
-//       message:
-//         err.message || "Some error occurred while removing all asset templates.",
-//     });
-//   });
-// };

@@ -243,6 +243,10 @@ exports.findAll = (req, res) => {
 // Find a single Asset with an id
 exports.findOne = async (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid asset id!",
+  });
+
   const full = req.query?.full != undefined;
 
   const typeIncludes = full ? [
@@ -337,6 +341,9 @@ exports.findOne = async (req, res) => {
 // Update an Asset by the id in the request
 exports.update = async (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid asset id!",
+  });
 
   if (req.body?.typeId !== undefined) delete req.body.typeId;
 
@@ -391,9 +398,11 @@ exports.update = async (req, res) => {
     if (setData || removedTemplate) {
       console.log(target.get({plain:true}))
       
-      // Ignore any empty fields
+      // Ignore any non-existing empty fields
       // Match req.body.fields to target.dataValues.fields
       // If removing the template from the asset, ensure that any required fields are filled out at the same time
+
+      // Remove any existing asset data being set to empty
     }
 
     target.set(req.body);
@@ -423,6 +432,10 @@ exports.update = async (req, res) => {
 // Delete an Asset with the specified id in the request
 exports.delete = async (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid asset id!",
+  });
+
   const type = await Asset.findByPk(id, {
     attributes: [],
     include: {
@@ -457,23 +470,6 @@ exports.delete = async (req, res) => {
     });
   });
 };
-
-// Delete all Assets from the database.
-// exports.deleteAll = (req, res) => {
-//   Asset.destroy({
-//     where: {},
-//     truncate: false,
-//   })
-//   .then((nums) => {
-//     res.send({ message: `${nums} assets were deleted successfully!` });
-//   })
-//   .catch((err) => {
-//     res.status(500).send({
-//       message:
-//         err.message || "Some error occurred while removing all assets.",
-//     });
-//   });
-// };
 
 exports.fullAssetIncludes = (assetId, viewableCategories, templateId) => [
   {
@@ -603,8 +599,8 @@ exports.displayAssetIncludes = (viewableCategories) => [
           required: false,
           where: {
             assetId: db.Sequelize.col("asset.id"),
+            //db.Sequelize.where(db.Sequelize.col("type->identifier->assetData.assetId"), db.Sequelize.col("asset.id")),
           }
-          //db.Sequelize.where(db.Sequelize.col("type->identifier->assetData.assetId"), db.Sequelize.col("asset.id")),
         },
       },
     ],

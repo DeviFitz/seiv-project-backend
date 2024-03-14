@@ -54,6 +54,9 @@ exports.findAll = (req, res) => {
 // Find a single Group with an id
 exports.findOne = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid group id!",
+  });
 
   const queries = req.query;
   const includes = queries?.full != undefined ?
@@ -91,6 +94,10 @@ exports.findOne = (req, res) => {
 // Update a Group by the id in the request
 exports.update = async (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid group id!",
+  });
+
   const t = await db.sequelize.transaction();
   
   try
@@ -157,6 +164,9 @@ exports.update = async (req, res) => {
 // Delete a Group with the specified id in the request
 exports.delete = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid group id!",
+  });
 
   Group.destroy({ where: { id } })
   .then((num) => {
@@ -176,20 +186,3 @@ exports.delete = (req, res) => {
     });
   });
 };
-
-// Delete all Groups from the database.
-// exports.deleteAll = (req, res) => {
-//   Group.destroy({
-//     where: {},
-//     truncate: false,
-//   })
-//   .then((nums) => {
-//     res.send({ message: `${nums} groups were deleted successfully!` });
-//   })
-//   .catch((err) => {
-//     res.status(500).send({
-//       message:
-//         err.message || "Some error occurred while removing all groups.",
-//     });
-//   });
-// };

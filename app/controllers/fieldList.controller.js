@@ -47,6 +47,9 @@ exports.findAll = (req, res) => {
 // Find a single FieldList with an id
 exports.findOne = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid field list id!",
+  });
 
   FieldList.findByPk(id)
   .then((data) => {
@@ -68,6 +71,9 @@ exports.findOne = (req, res) => {
 // Update a FieldList by the id in the request
 exports.update = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid field list id!",
+  });
 
   FieldList.update(req.body, { where: { id } })
   .then((num) => {
@@ -91,6 +97,9 @@ exports.update = (req, res) => {
 // Delete a FieldList with the specified id in the request
 exports.delete = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid field list id!",
+  });
 
   FieldList.destroy({ where: { id } })
   .then((num) => {
@@ -110,20 +119,3 @@ exports.delete = (req, res) => {
     });
   });
 };
-
-// Delete all FieldLists from the database.
-// exports.deleteAll = (req, res) => {
-//   FieldList.destroy({
-//     where: {},
-//     truncate: false,
-//   })
-//   .then((nums) => {
-//     res.send({ message: `${nums} fieldlists were deleted successfully!` });
-//   })
-//   .catch((err) => {
-//     res.status(500).send({
-//       message:
-//         err.message || "Some error occurred while removing all fieldlists.",
-//     });
-//   });
-// };

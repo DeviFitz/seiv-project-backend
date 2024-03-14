@@ -59,6 +59,9 @@ exports.findAll = (req, res) => {
 // Find a single User with an id
 exports.findOne = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid user id!",
+  });
 
   const queries = req.query;
   const includes = queries?.full != undefined ?
@@ -113,6 +116,9 @@ exports.findOne = (req, res) => {
 // Update a User by the id in the request
 exports.update = async (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid user id!",
+  });
 
   const target = await User.findByPk(id, {
     include: [
@@ -280,6 +286,9 @@ exports.update = async (req, res) => {
 // Delete a User with the specified id in the request
 exports.delete = async (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid user id!",
+  });
   
   const target = (await User.findByPk(id, {
     include: [{

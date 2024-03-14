@@ -5,10 +5,9 @@ const Room = db.room;
 exports.create = async (req, res) => {
   // Validate request
   if (!req.body.name || !req.body.buildingId) {
-    res.status(400).send({
+    return res.status(400).send({
       message: "Content cannot be empty!",
     });
-    return;
   }
 
   // Create a Room
@@ -69,6 +68,9 @@ exports.findAll = (req, res) => {
 // Find a single Room with an id
 exports.findOne = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid room id!",
+  });
 
   Room.findByPk(id)
   .then((data) => {
@@ -90,6 +92,9 @@ exports.findOne = (req, res) => {
 // Update a Room by the id in the request
 exports.update = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid room id!",
+  });
 
   Room.update(req.body, {
     where: { id },
@@ -134,6 +139,10 @@ exports.update = (req, res) => {
 // Delete a Room with the specified id in the request
 exports.delete = async (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid room id!",
+  });
+
   const type = await Room.findByPk(id, {
     attributes: [],
     include: {
@@ -183,20 +192,3 @@ exports.delete = async (req, res) => {
     });
   });
 };
-
-// Delete all Rooms from the database.
-// exports.deleteAll = (req, res) => {
-//   Room.destroy({
-//     where: {},
-//     truncate: false,
-//   })
-//   .then((nums) => {
-//     res.send({ message: `${nums} rooms were deleted successfully!` });
-//   })
-//   .catch((err) => {
-//     res.status(500).send({
-//       message:
-//         err.message || "Some error occurred while removing all rooms.",
-//     });
-//   });
-// };

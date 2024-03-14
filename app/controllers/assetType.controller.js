@@ -54,6 +54,10 @@ exports.findAll = (req, res) => {
 // Find a single AssetType with an id
 exports.findOne = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid asset type id!",
+  });
+
   const includes = req?.query?.full != undefined ? {
     include: {
       model: db.assetField,
@@ -92,6 +96,9 @@ exports.findOne = (req, res) => {
 // Update an AssetType by the id in the request
 exports.update = async (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid asset type id!",
+  });
 
   const t = await db.sequelize.transaction();
   const setFields = Array.isArray(req.body?.fields);
@@ -282,6 +289,9 @@ exports.update = async (req, res) => {
 // Delete an AssetType with the specified id in the request
 exports.delete = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid asset type id!",
+  });
 
   AssetType.destroy({
     where: {
@@ -306,20 +316,3 @@ exports.delete = (req, res) => {
     });
   });
 };
-
-// Delete all AssetTypes from the database.
-// exports.deleteAll = (req, res) => {
-//   AssetType.destroy({
-//     where: {},
-//     truncate: false,
-//   })
-//   .then((nums) => {
-//     res.send({ message: `${nums} asset types were deleted successfully!` });
-//   })
-//   .catch((err) => {
-//     res.status(500).send({
-//       message:
-//         err.message || "Some error occurred while removing all asset types.",
-//     });
-//   });
-// };

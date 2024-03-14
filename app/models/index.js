@@ -152,7 +152,18 @@ db.asset.hasMany(
 )
 
 // Foreign keys for Asset Category
-// None!
+db.assetCategory.hasMany(
+  db.permission,
+  {
+    as: "permissions",
+    foreignKey: {
+      name: "categoryId",
+      allowNull: true,
+    },
+    onDelete: "CASCADE",
+    hooks: true,
+  }
+);
 
 // Foreign keys for Asset Data
 db.assetData.belongsTo(
@@ -392,12 +403,7 @@ db.permission.belongsTo(
   db.assetCategory,
   {
     as: "category",
-    foreignKey: {
-      name: "categoryId",
-      allowNull: true,
-    },
-    onDelete: "CASCADE",
-    hooks: true,
+    foreignKey: "categoryId",
   }
 );
 

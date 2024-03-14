@@ -49,6 +49,9 @@ exports.findAll = (req, res) => {
 // Find a single Vendor with an id
 exports.findOne = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid vendor id!",
+  });
 
   Vendor.findByPk(id)
   .then((data) => {
@@ -70,6 +73,9 @@ exports.findOne = (req, res) => {
 // Update a Vendor by the id in the request
 exports.update = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid vendor id!",
+  });
 
   Vendor.update(req.body, { where: { id } })
   .then((num) => {
@@ -93,6 +99,9 @@ exports.update = (req, res) => {
 // Delete a Vendor with the specified id in the request
 exports.delete = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid vendor id!",
+  });
 
   Vendor.destroy({ where: { id } })
   .then((num) => {
@@ -112,20 +121,3 @@ exports.delete = (req, res) => {
     });
   });
 };
-
-// Delete all Vendors from the database.
-// exports.deleteAll = (req, res) => {
-//   Vendor.destroy({
-//     where: {},
-//     truncate: false,
-//   })
-//   .then((nums) => {
-//     res.send({ message: `${nums} vendors were deleted successfully!` });
-//   })
-//   .catch((err) => {
-//     res.status(500).send({
-//       message:
-//         err.message || "Some error occurred while removing all vendors.",
-//     });
-//   });
-// };

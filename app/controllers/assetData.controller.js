@@ -78,6 +78,9 @@ exports.findAll = (req, res) => {
 // Find a single AssetData with an id
 exports.findOne = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid asset data id!",
+  });
 
   AssetData.findByPk(id, {
     include: {
@@ -113,6 +116,9 @@ exports.findOne = (req, res) => {
 // Update an AssetData by the id in the request
 exports.update = async (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid asset data id!",
+  });
 
   if (req.body?.value !== undefined)
   {
@@ -120,9 +126,12 @@ exports.update = async (req, res) => {
       req.body.value = req.body.value.trim();
     
     if ((req.body.value?.length ?? 0) < 1) return res.status(400).send({
-      message: "Asset value cannot be updated to an empty value!",
+      message: "Asset data value cannot be updated to an empty value!",
     });
   }
+
+  if (req.body?.assetId !== undefined) delete req.body.assetId;
+  if (req.body?.fieldId !== undefined) delete req.body.fieldId;
 
   const t = await db.sequelize.transaction();
   let error = false;
@@ -210,47 +219,3 @@ exports.update = async (req, res) => {
     t.rollback();
   }
 };
-
-//#region Deleting
-// Delete an AssetData with the specified id in the request
-// exports.delete = (req, res) => {
-//   const id = req.params.id;
-
-//   AssetData.destroy({
-//     where: { id: id },
-//   })
-//   .then((num) => {
-//     if (num == 1) {
-//       res.send({
-//         message: "Asset data was deleted successfully!",
-//       });
-//     } else {
-//       res.send({
-//         message: `Cannot delete asset data with id=${id}. Maybe asset data was not found!`,
-//       });
-//     }
-//   })
-//   .catch((err) => {
-//     res.status(500).send({
-//       message: "Could not delete asset data with id=" + id,
-//     });
-//   });
-// };
-
-// Delete all AssetDatas from the database.
-// exports.deleteAll = (req, res) => {
-//   AssetData.destroy({
-//     where: {},
-//     truncate: false,
-//   })
-//   .then((nums) => {
-//     res.send({ message: `${nums} asset data were deleted successfully!` });
-//   })
-//   .catch((err) => {
-//     res.status(500).send({
-//       message:
-//         err.message || "Some error occurred while removing all asset data.",
-//     });
-//   });
-// };
-//#endregion

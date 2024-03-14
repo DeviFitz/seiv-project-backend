@@ -82,6 +82,9 @@ exports.findAll = (req, res) => {
 // Find a single AssetField with an id
 exports.findOne = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid asset field id!",
+  });
 
   AssetField.findByPk(id, {
     ...req.paginator,
@@ -112,6 +115,9 @@ exports.findOne = (req, res) => {
 // Update an AssetField by the id in the request
 exports.update = async (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid asset field id!",
+  });
 
   const t = await db.sequelize.transaction();
   let error = false;
@@ -193,6 +199,10 @@ exports.update = async (req, res) => {
 // Delete an AssetField with the specified id in the request
 exports.delete = async (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid asset field id!",
+  });
+
   const type = await AssetField.findByPk(id, {
     attributes: [],
     include: {
@@ -227,23 +237,6 @@ exports.delete = async (req, res) => {
     });
   });
 };
-
-// Delete all AssetFields from the database.
-// exports.deleteAll = (req, res) => {
-//   AssetField.destroy({
-//     where: {},
-//     truncate: false,
-//   })
-//   .then((nums) => {
-//     res.send({ message: `${nums} asset fields were deleted successfully!` });
-//   })
-//   .catch((err) => {
-//     res.status(500).send({
-//       message:
-//         err.message || "Some error occurred while removing all asset fields.",
-//     });
-//   });
-// };
 
 /**Validates fields to ensure that they do not overlap; have valid rows, rowspans, columns, and columnspans; and do not have any duplicate names
  * 

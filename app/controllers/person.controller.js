@@ -7,10 +7,9 @@ const { normalizePermissions } = require("./permission.controller");
 exports.create = (req, res) => {
   // Validate request
   if (!req.body.fName || !req.body.lName || !req.body.email) {
-    res.status(400).send({
+    return res.status(400).send({
       message: "Content cannot be empty!",
     });
-    return;
   }
 
   // Create a Person
@@ -51,6 +50,10 @@ exports.findAll = (req, res) => {
 // Find a single Person with an id
 exports.findOne = async (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid person id!",
+  });
+
   let viewableCats;
 
   if (req?.query?.full != undefined)

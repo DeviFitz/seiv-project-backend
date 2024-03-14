@@ -48,6 +48,9 @@ exports.findAll = (req, res) => {
 // Find a single Notification with an id
 exports.findOne = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid notification id!",
+  });
 
   Notification.findByPk(id)
   .then((data) => {
@@ -69,6 +72,9 @@ exports.findOne = (req, res) => {
 // Update a Notification by the id in the request
 exports.update = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid notification id!",
+  });
 
   Notification.update(req.body, { where: { id } })
   .then((num) => {
@@ -92,6 +98,9 @@ exports.update = (req, res) => {
 // Delete a Notification with the specified id in the request
 exports.delete = (req, res) => {
   const id = req.params.id;
+  if (isNaN(parseInt(id))) return res.status(400).send({
+    message: "Invalid notification id!",
+  });
 
   Notification.destroy({ where: { id } })
   .then((num) => {
@@ -111,20 +120,3 @@ exports.delete = (req, res) => {
     });
   });
 };
-
-// Delete all Notifications from the database.
-// exports.deleteAll = (req, res) => {
-//   Notification.destroy({
-//     where: {},
-//     truncate: false,
-//   })
-//   .then((nums) => {
-//     res.send({ message: `${nums} notifications were deleted successfully!` });
-//   })
-//   .catch((err) => {
-//     res.status(500).send({
-//       message:
-//         err.message || "Some error occurred while removing all notifications.",
-//     });
-//   });
-// };

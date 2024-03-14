@@ -67,12 +67,12 @@ exports.create = async (req, res) => {
       field.assetData.value = field.assetData.value?.trim();
 
       return field.assetData.value?.length > 0;
-    })?.map(field => field.assetData);
+    })?.map(field => field.assetData) ?? [];
     
     // If template can be found, exclude any asset data with matching field ids
     if (!isNaN(parseInt(asset.templateId))) {
       const template = (await db.assetTemplate.findByPk(asset.templateId, {
-        attributes: [],
+        attributes: ["id"],
         include: {
           model: db.templateData,
           as: "data",
@@ -287,7 +287,7 @@ exports.findOne = async (req, res) => {
   asset.dataValues?.type?.dataValues?.fields
   ?.forEach(field => {
     field.dataValues.templateData = field.dataValues.templateData?.[0] ?? null;
-    field.dataValues.assetData = !field.dataValues.templateData ? field.dataValues.assetData?.[0] ?? null : null;
+    field.dataValues.assetData = field.dataValues.assetData?.[0] ?? null;
   });
 
   const missingData = asset.dataValues?.type?.dataValues?.fields

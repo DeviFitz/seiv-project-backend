@@ -135,7 +135,7 @@ exports.update = async (req, res) => {
     include: {
       model: db.assetField,
       as: "fields",
-      attributes: ["id"],
+      attributes: ["id", "required"],
       required: false,
       where: { templateField: true },
       include: {
@@ -229,7 +229,8 @@ exports.update = async (req, res) => {
       if (removeData.length > 0) {
         // If at least one of the deleted data is required, check to see if any assets depend on it
         const requiredData = removeData.filter(dataId => target.dataValues.assetType.dataValues.fields
-          .some(field => field.dataValues.required && field.dataValues.templateData?.dataValues?.id == dataId));
+        .some(field => field.dataValues.required && field.dataValues.templateData?.[0]?.dataValues?.id == dataId));
+        
         if (requiredData.length > 0)
         {
           const assets = await db.asset.findAll({
@@ -246,10 +247,10 @@ exports.update = async (req, res) => {
             });
             throw new Error();
           }
-
+          
           if (assets.length > 0) {
             res.status(400).send({
-              message: "Error deleting template data as it is required and at least one asset depends on it!",
+              message: "Error deleting template data as at least one of the deleted data is required and at least one asset depends on it!",
             });
             throw new Error();
           }

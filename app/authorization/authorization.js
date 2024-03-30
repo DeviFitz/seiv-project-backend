@@ -105,6 +105,18 @@ const getViewableCategories = async (req, res, next) => {
   });
 };
 
+/**Gets the ids of categories that the user has permission to report under*/
+const getReportableCategories = async (req, res, next) => {
+  req.requestingUser.dataValues.reportableCategories = [...new Set(req.requestingUser.dataValues.permissions
+  .filter(permission => !!permission.categoryId && permission.name.match(/Report/i)?.length > 0)
+  .map(permission => permission.categoryId))];
+
+  if (req.requestingUser.dataValues.reportableCategories.length > 0) next();
+  else res.status(401).send({
+    message: "Unauthorized! User does not have permission to report data under any categories.",
+  });
+};
+
 /**Gets the ids of categories that the user has permission to edit under*/
 const getEditableCategories = async (req, res, next) => {
   req.requestingUser.dataValues.editableCategories = [...new Set(req.requestingUser.dataValues.permissions
@@ -410,11 +422,14 @@ const checkRemoveUser = async (req, res, next) => {
 };
 //#endregion
 
+
+
 // Load up object to export
 module.exports = {
   authenticate,
   getPermissions,
   getViewableCategories,
+  getReportableCategories,
   getEditableCategories,
   getCreatableCategories,
   getDeletableCategories,

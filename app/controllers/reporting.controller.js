@@ -20,7 +20,7 @@ exports.getReportableCategories = (req, res) => {
 exports.getReportableTypes = (req, res) => {
     const ids = req.requestingUser.dataValues.reportableCategories;
 
-    db.assetCategories.findAll({
+    db.assetType.findAll({
         include: {
             model: db.assetCategory,
             as: "category",
@@ -55,6 +55,10 @@ exports.reportAssetsByType = (req, res) => {
     });
 
     /*
+    acquisitionDate
+    acquisitionPrice
+    condition
+    location
     fields: [
         {
             id: "acquisitionDate",
@@ -87,10 +91,23 @@ exports.reportAssetsByType = (req, res) => {
     const fieldIds = [];
     const alertTypeIds = [];
     fields.forEach(field => {
-        if (!isNaN(parseInt(field.id, 10)) && !isNaN(Number(field.id, 10))) assetAttributes.push(field.id);
+        if (isNaN(parseInt(field.id, 10)) || isNaN(Number(field.id, 10))) assetAttributes.push(field.id);
         else if (field.isField) fieldIds.push(field.id);
         else alertTypeIds.push(field.id);
     });
+
+    const locationInclude = assetAttributes.includes("locationId") ? [
+        {
+            model: db.room,
+            as: "location",
+            attributes: ["name"],
+            include: {
+                model: db.building,
+                as: "building",
+                attributes: ["abbreviation"],
+            },
+        }
+    ] : [];
 
     db.asset.findAll({
         where: { typeId },
@@ -108,6 +125,7 @@ exports.reportAssetsByType = (req, res) => {
                 required: false,
                 where: { typeId: alertTypeIds },
             },
+            ...locationInclude,
         ],
     })
     .then(data => {

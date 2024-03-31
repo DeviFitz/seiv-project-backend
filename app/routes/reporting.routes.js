@@ -15,7 +15,7 @@ module.exports = (app) => {
     router.get("/asset-types", [authenticate, getPermissions, getReportableCategories, getPage], reporter.getReportableTypes);
     
     // Retrieve a reportable type along with its specified fields and alerts to include
-    router.get("/asset-types/:id", [authenticate, getPermissions, getReportableCategories, getPage], reporter.reportAssetsByType);
+    router.post("/asset-types/:id", [authenticate, getPermissions, getReportableCategories, getPage], reporter.reportAssetsByType);
   
     app.use("/asset-t3/reporting", router);
 };

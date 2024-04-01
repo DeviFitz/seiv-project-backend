@@ -130,10 +130,81 @@ exports.update = async (req, res) => {
       throw new Error();
     }
 
+    let createdIdentifier = null;
+    if (setFields)
+    {
+      // So that the user doesn't technically have to send the whole field back to update them
+      const existingFields = assetType?.get({ plain: true })?.fields;
+
+      // Validates to make sure that all fields do not collide with one another
+      const fields = req.body.fields.map(field => {
+        const result = {
+          ...(existingFields?.find(existing => existing.id == field.id || existing.label == field.label) ?? {}),
+          ...field,
+          assetTypeId: id,
+        };
+
+        if (result.id == (req.body?.identifierId ?? assetType.dataValues.identifierId)) {
+          result.required = true;
+          result.templateField = false;
+        }
+
+        return result;
+      });
+      const deleteFields = existingFields?.filter(field => !fields.find(updated => updated.id == field.id))?.map(field => field.id) ?? [];
+
+      if (!validateFields(fields) || fields.some(field => !field.label || field.assetTypeId != id)) {
+        res.status(400).send({
+          message: "Error: asset field data is invalid!"
+        });
+        throw new Error();
+      }
+
+      anchorFields(fields);
+      // Automatically creates the fields and connects them to the asset type
+      await Promise.all(fields.map(async (field) => db.assetField.upsert(field, {
+          where: { id: field.id },
+          transaction: t,
+          returning: true,
+        })
+        .then(([data, created]) => {
+          if (created
+            && (isNaN(parseInt(req.body?.identifierId)) || isNaN(new Number(req.body?.identifierId)))
+            && typeof req.body?.identifierId === "string"
+            && req.body.identifierId == data.dataValues.label)
+          {
+            req.body.identifierId = data.dataValues.id;
+            createdIdentifier = data;
+          }
+        })
+        .catch(err => {
+          error = true;
+        })
+      ));
+        
+      if (error) {
+        res.status(500).send({
+          message: "Error updating asset fields!",
+        });
+        throw new Error();
+      }
+
+      if (deleteFields.length > 0)
+      {
+        await db.assetField.destroy({ where: { id: deleteFields }, transaction: t })
+        .catch(err => {
+          error = true;
+          res.status(500).send({
+            message: "Error removing asset fields!",
+          });
+        });
+      }
+    }
+
     // Ensure that if identifier field is changed to a new one, its attributes are adjusted properly and its template data are deleted
     if (assetType.dataValues.identifierId != req.body?.identifierId && !isNaN(parseInt(req.body?.identifierId)))
     {
-      const newIdentifier = assetType.dataValues.fields.find(field => field.dataValues.id == req.body.identifierId);
+      const newIdentifier = createdIdentifier ?? assetType.dataValues.fields.find(field => field.dataValues.id == req.body.identifierId);
       if (!newIdentifier) {
         res.status(400).send({
           message: `Error updating identifier for asset type with id=${id}! Identifier does not belong to asset type!`,
@@ -200,66 +271,6 @@ exports.update = async (req, res) => {
       });
 
       if (error) throw new Error();
-    }
-
-    if (setFields)
-    {
-      // So that the user doesn't technically have to send the whole field back to update them
-      const existingFields = assetType?.get({ plain: true })?.fields;
-
-      // Validates to make sure that all fields do not collide with one another
-      const fields = req.body.fields.map(field => {
-        const result = {
-          ...(existingFields?.find(existing => existing.id == field.id || existing.label == field.label) ?? {}),
-          ...field,
-          assetTypeId: id,
-        };
-
-        if (result.id == (req.body?.identifierId ?? assetType.dataValues.identifierId)) {
-          result.required = true;
-          result.templateField = false;
-        }
-
-        return result;
-      });
-      const deleteFields = existingFields?.filter(field => !fields.find(updated => updated.id == field.id))?.map(field => field.id) ?? [];
-
-      if (!validateFields(fields) || fields.some(field => !field.label || field.assetTypeId != id)) {
-        res.status(400).send({
-          message: "Error: asset field data is invalid!"
-        });
-        throw new Error();
-      }
-
-      anchorFields(fields);
-      // Automatically creates the fields and connects them to the asset type
-      await Promise.all(fields.map(async (field) => db.assetField.upsert(field, {
-          where: { id: field.id },
-          transaction: t,
-          returning: true,
-        })
-        .catch(err => {
-          error = true;
-        })
-      ));
-        
-      if (error) {
-        res.status(500).send({
-          message: "Error updating asset fields!",
-        });
-        throw new Error();
-      }
-
-      if (deleteFields.length > 0)
-      {
-        await db.assetField.destroy({ where: { id: deleteFields }, transaction: t })
-        .catch(err => {
-          error = true;
-          res.status(500).send({
-            message: "Error removing asset fields!",
-          });
-        });
-      }
     }
 
     if (error) throw new Error();

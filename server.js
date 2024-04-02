@@ -42,6 +42,7 @@ require("./app/routes/log.routes")(app);
 require("./app/routes/notification.routes")(app);
 require("./app/routes/permission.routes")(app);
 require("./app/routes/person.routes")(app);
+require("./app/routes/reporting.routes")(app);
 require("./app/routes/room.routes")(app);
 require("./app/routes/templateData.routes")(app);
 require("./app/routes/user.routes")(app);

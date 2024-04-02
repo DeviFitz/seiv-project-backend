@@ -71,6 +71,7 @@ exports.create = async (req, res) => {
 // Retrieve all AssetCategories from the database.
 exports.findAll = (req, res) => {
   AssetCategory.findAll({
+    where: { id: req.requestingUser.dataValues.viewableCategories },
     ...req.paginator,
   })
   .then((data) => {
@@ -88,6 +89,10 @@ exports.findOne = (req, res) => {
   const id = req.params.id;
   if (isNaN(parseInt(id))) return res.status(400).send({
     message: "Invalid asset category id!",
+  });
+
+  if (!req.requestingUser.dataValues.viewableCategories.includes(id)) return res.status(401).send({
+    message: "Error: user is not authorized to view this category!",
   });
 
   AssetCategory.findByPk(id)

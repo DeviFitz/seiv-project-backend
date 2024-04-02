@@ -3,6 +3,7 @@ module.exports = (app) => {
     const {
         authenticate,
         getPermissions,
+        getViewableCategories,
         checkCreateCategory,
         checkEditCategory,
         checkDeleteCategory,
@@ -14,10 +15,10 @@ module.exports = (app) => {
     router.post("/", [authenticate, getPermissions, checkCreateCategory], assetCategory.create);
   
     // Retrieve all AssetCategories
-    router.get("/", [authenticate, getPage], assetCategory.findAll);
+    router.get("/", [authenticate, getViewableCategories, getPage], assetCategory.findAll);
   
     // Retrieve a single AssetCategory with id
-    router.get("/:id", [authenticate], assetCategory.findOne);
+    router.get("/:id", [authenticate, getViewableCategories], assetCategory.findOne);
   
     // Update an AssetCategory with id
     router.put("/:id", [authenticate, getPermissions, checkEditCategory], assetCategory.update);

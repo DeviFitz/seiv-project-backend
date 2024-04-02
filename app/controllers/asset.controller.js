@@ -797,5 +797,10 @@ exports.displayAssetIncludes = (assetId, viewableCategories) => [
   {
     model: db.alert,
     as: "alerts",
+    include: {
+      model: db.alertType,
+      as: "type",
+      attributes: ["name"],
+    },
   },
 ];

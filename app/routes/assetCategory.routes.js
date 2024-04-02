@@ -3,9 +3,11 @@ module.exports = (app) => {
     const {
         authenticate,
         getPermissions,
+        getViewableCategories,
         checkCreateCategory,
         checkEditCategory,
         checkDeleteCategory,
+        getPage,
     } = require("../authorization/authorization.js");
     const router = require("express").Router();
   
@@ -13,10 +15,10 @@ module.exports = (app) => {
     router.post("/", [authenticate, getPermissions, checkCreateCategory], assetCategory.create);
   
     // Retrieve all AssetCategories
-    router.get("/", [authenticate], assetCategory.findAll);
+    router.get("/", [authenticate, getPermissions, getViewableCategories, getPage], assetCategory.findAll);
   
     // Retrieve a single AssetCategory with id
-    router.get("/:id", [authenticate], assetCategory.findOne);
+    router.get("/:id", [authenticate, getPermissions, getViewableCategories], assetCategory.findOne);
   
     // Update an AssetCategory with id
     router.put("/:id", [authenticate, getPermissions, checkEditCategory], assetCategory.update);

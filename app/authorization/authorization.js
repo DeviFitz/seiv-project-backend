@@ -2,6 +2,18 @@ const db = require("../models");
 const Session = db.session;
 const User = db.user;
 
+/**Creates and appends an object for pagination if needed*/
+const getPage = async (req, res, next) => {
+  const page = parseInt(req.query.page);
+  const limit = parseInt(req.query.limit);
+  req.paginator =  !!page && !!limit && page > 0 && limit > 0 ?
+  {
+    offset: (page - 1) * limit,
+    limit,
+  } : {};
+  next();
+};
+
 /**Determines whether the user has a valid session and is not blocked*/
 const authenticate = async (req, res, next) => {
   const authHeader = req.get("authorization");
@@ -90,6 +102,18 @@ const getViewableCategories = async (req, res, next) => {
   if (req.requestingUser.dataValues.viewableCategories.length > 0) next();
   else res.status(401).send({
     message: "Unauthorized! User does not have permission to view data under any categories.",
+  });
+};
+
+/**Gets the ids of categories that the user has permission to report under*/
+const getReportableCategories = async (req, res, next) => {
+  req.requestingUser.dataValues.reportableCategories = [...new Set(req.requestingUser.dataValues.permissions
+  .filter(permission => !!permission.categoryId && permission.name.match(/Report/i)?.length > 0)
+  .map(permission => permission.categoryId))];
+
+  if (req.requestingUser.dataValues.reportableCategories.length > 0) next();
+  else res.status(401).send({
+    message: "Unauthorized! User does not have permission to report data under any categories.",
   });
 };
 
@@ -398,11 +422,14 @@ const checkRemoveUser = async (req, res, next) => {
 };
 //#endregion
 
+
+
 // Load up object to export
 module.exports = {
   authenticate,
   getPermissions,
   getViewableCategories,
+  getReportableCategories,
   getEditableCategories,
   getCreatableCategories,
   getDeletableCategories,
@@ -431,4 +458,7 @@ module.exports = {
   checkViewUser,
   getEditUserPerms,
   checkRemoveUser,
+  getPage,
+  checkHasPermission,
+  PermTypes,
 };

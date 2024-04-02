@@ -1,12 +1,15 @@
+const { authenticate } = require("../authorization/authorization.js");
+
 module.exports = (app) => {
   const auth = require("../controllers/auth.controller.js");
   const router = require("express").Router();
+  const { authenticate } = require("../authorization/authorization.js");
 
   // Login
   router.post("/login", auth.login);
 
   // Authorization
-  //router.post("/authorize/:id", auth.authorize);
+  router.post("/authorize", [authenticate], (req, res) => res.send({ message: "Session is still valid!" }));
 
   // Logout
   router.post("/logout", auth.logout);

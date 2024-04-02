@@ -3,6 +3,7 @@ const { authenticate } = require("../authorization/authorization.js");
 module.exports = (app) => {
   const auth = require("../controllers/auth.controller.js");
   const router = require("express").Router();
+  const { authenticate } = require("../authorization/authorization.js");
 
   // Login
   router.post("/login", auth.login);

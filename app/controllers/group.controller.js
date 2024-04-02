@@ -76,7 +76,6 @@ exports.findOne = (req, res) => {
   })
   .then((data) => {
     if (data) {
-      denormalizePermissions(normalizePermissions(data.get({ plain: true })))
       res.send(normalizePermissions(data.get({ plain: true })));
     } else {
       res.status(404).send({

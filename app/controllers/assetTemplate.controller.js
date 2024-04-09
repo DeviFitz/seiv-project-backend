@@ -43,14 +43,23 @@ exports.create = async (req, res) => {
 
 // Retrieve all AssetTemplates from the database.
 exports.findAll = (req, res) => {
+  const raw = req?.query?.raw !== undefined;
+
   AssetTemplate.findAll({
     ...req.paginator,
     include: {
       model: db.assetType,
       as: "assetType",
-      attributes: ["name"],
+      attributes: raw ? [] : ["name"],
       required: true,
       where: { categoryId: req.requestingUser.dataValues.viewableCategories },
+      include: raw ? [] : [
+        {
+          model: db.assetCategory,
+          as: "category",
+          attributes: ["name"],
+        },
+      ],
     },
   })
   .then((data) => {

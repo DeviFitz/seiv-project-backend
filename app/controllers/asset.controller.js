@@ -201,7 +201,7 @@ exports.create = async (req, res) => {
 
 // Retrieve all Assets from the database.
 exports.findAll = (req, res) => {
-  const raw = req.query?.raw != undefined;
+  const raw = req.query?.raw !== undefined;
   const typeIncludes = !raw ? this.displayAssetIncludes(null, req.requestingUser.dataValues.viewableCategories)[0].include : [];
   const assetIncludes = !raw ? [
     ...this.displayAssetIncludes(null, null).slice(1),

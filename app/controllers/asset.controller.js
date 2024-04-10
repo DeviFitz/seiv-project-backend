@@ -209,7 +209,7 @@ exports.findAll = (req, res) => {
 
   Asset.findAll({
     ...req.paginator,
-    attributes: raw ? { exclude: [] } : ["id"],
+    attributes: raw ? { exclude: [] } : ["id", "dueDate"],
     include: [
       {
         model: db.assetType,
@@ -793,6 +793,11 @@ exports.displayAssetIncludes = (assetId, viewableCategories) => [
       as: "building",
       attributes: ["abbreviation"],
     },
+  },
+  {
+    model: db.person,
+    as: "borrower",
+    attributes: ["id", "fName", "lName"],
   },
   {
     model: db.alert,

@@ -204,7 +204,7 @@ exports.findAll = (req, res) => {
   const raw = req.query?.raw !== undefined;
   const typeIncludes = !raw ? this.displayAssetIncludes(null, req.requestingUser.dataValues.viewableCategories)[0].include : [];
   const assetIncludes = !raw ? [
-    ...this.displayAssetIncludes(null, null).slice(1),
+    ...this.displayAssetIncludes(null, req.requestingUser.dataValues.viewableCategories).slice(1),
   ] : [];
 
   Asset.findAll({
@@ -776,10 +776,7 @@ exports.displayAssetIncludes = (assetId, viewableCategories) => [
           as: "assetData",
           attributes: ["value"],
           required: false,
-          where: {
-            assetId: assetId ?? db.Sequelize.col("asset.id"),
-            //db.Sequelize.where(db.Sequelize.col("type->identifier->assetData.assetId"), db.Sequelize.col("asset.id")),
-          }
+          where: (assetId ?? null) !== null ? { assetId } : db.Sequelize.where(db.Sequelize.col("type->identifier->assetData.assetId"), db.Sequelize.col("asset.id")),
         },
       },
     ],

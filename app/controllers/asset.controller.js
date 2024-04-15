@@ -199,6 +199,121 @@ exports.create = async (req, res) => {
   }
 };
 
+// Check in an asset
+exports.checkIn = async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).send({
+    message: "Invalid asset id!",
+  });
+
+  const newCondition = req.body.condition !== undefined ? { condition: req.body.condition } : {};
+  const t = await db.sequelize.transaction();
+  let error = false;
+
+  try {
+    await db.log.create({
+      date: new Date(),
+      assetId: id,
+      authorId: req?.requestingUser?.dataValues?.id,
+      type: "Circulation",
+      circulationStatus: "Checked In",
+      description: !!newCondition.condition ? `Returned asset in "${newCondition.condition}" condition` : null,
+    }, { transaction: t })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error creating log to check in asset!"
+      });
+    });
+
+    if (error) throw new Error();
+
+    await Asset.update({
+      borrowerId: null,
+      dueDate: null,
+      ...newCondition,
+    }, {
+      where: { id },
+      transaction: t,
+    })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error updating asset circulation status!",
+      });
+    });
+
+    if (error) throw new Error();
+
+    await t.commit();
+    res.send({ message: "Successfully checked in asset!" });
+  }
+  catch {
+    t.rollback();
+  }
+};
+
+// Check out an asset
+exports.checkOut = async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).send({
+    message: "Invalid asset id!",
+  });
+
+  const t = await db.sequelize.transaction();
+  let error = false;
+
+  try {
+    const targetAsset = await Asset.findByPk(id);
+
+    if (!targetAsset) {
+      res.status(404).send({
+        message: "No asset found with id=" + id,
+      });
+      throw new Error();
+    }
+
+    await db.log.create({
+      date: new Date(),
+      assetId: id,
+      authorId: req?.requestingUser?.dataValues?.id,
+      type: "Circulation",
+      circulationStatus: "Checked Out",
+      description: `Asset checked out in "${targetAsset.dataValues.condition}" condition`,
+    }, { transaction: t })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error creating log to check in asset!"
+      });
+    });
+
+    if (error) throw new Error();
+
+    targetAsset.set({
+      borrowerId: null,
+      dueDate: null,
+      condition: "Checked-out"
+    });
+    
+    await targetAsset.save({ transaction: t })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error updating asset circulation status!",
+      });
+    });
+
+    if (error) throw new Error();
+
+    await t.commit();
+    res.send({ message: "Successfully checked out asset!" });
+  }
+  catch {
+    t.rollback();
+  }
+};
+
 // Retrieve all Assets from the database.
 exports.findAll = (req, res) => {
   const raw = req.query?.raw !== undefined;
@@ -375,6 +490,8 @@ exports.update = async (req, res) => {
   });
 
   if (req.body?.typeId !== undefined) delete req.body.typeId;
+  if (req.body?.borrowerId !== undefined) delete req.body.borrowerId;
+  if (req.body?.locationId !== undefined) delete req.body.locationId;
 
   const setData = req.body?.type?.fields !== undefined;
   const typeIncludes = setData || req.body?.templateId !== undefined ? [

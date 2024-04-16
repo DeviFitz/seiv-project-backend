@@ -206,18 +206,37 @@ exports.checkIn = async (req, res) => {
     message: "Invalid asset id!",
   });
 
-  const newCondition = req.body.condition !== undefined ? { condition: req.body.condition } : {};
+  const newCondition = req.body.condition !== undefined;
   const t = await db.sequelize.transaction();
   let error = false;
 
   try {
+    const targetAsset = await Asset.findByPk(id);
+
+    // Use the specified condition if there is one
+    // If no condition is specified, try and find the most recent log with a condition
+    // If no logs with a condition can be found, assume the asset is new and is thus in the "Like New" condition
+    const condition = newCondition ? req.body.condition : ((await db.log.findOne({
+      where: {
+        assetId: id,
+        condition: {
+          [db.Sequelize.Op.not]: null,
+          [db.Sequelize.Op.ne]: '',
+        },
+      },
+      order: [
+        ['date', 'DESC'],
+      ],
+    }))?.dataValues?.condition ?? "Like New");
+
     await db.log.create({
       date: new Date(),
       assetId: id,
       authorId: req?.requestingUser?.dataValues?.id,
       type: "Circulation",
-      circulationStatus: "Checked In",
-      description: !!newCondition.condition ? `Returned asset in "${newCondition.condition}" condition` : null,
+      circulationStatus: "Checked in",
+      description: `Returned asset in condition: "${condition}"`,
+      personId: targetAsset.dataValues.borrowerId,
     }, { transaction: t })
     .catch(err => {
       error = true;
@@ -228,14 +247,13 @@ exports.checkIn = async (req, res) => {
 
     if (error) throw new Error();
 
-    await Asset.update({
+    targetAsset.set({
       borrowerId: null,
       dueDate: null,
-      ...newCondition,
-    }, {
-      where: { id },
-      transaction: t,
-    })
+      condition,
+    });
+    
+    await targetAsset.save({ transaction: t })
     .catch(err => {
       error = true;
       res.status(500).send({
@@ -259,6 +277,12 @@ exports.checkOut = async (req, res) => {
   if (isNaN(id)) return res.status(400).send({
     message: "Invalid asset id!",
   });
+  if (isNaN(req.body.borrowerId)) return res.status(400).send({
+    message: "Invalid borrower id!",
+  });
+  if (isNaN(new Date(req.body.dueDate !== null ? "2000-01-01" : null))) return res.status(400).send({
+    message: "Invalid due date!",
+  });
 
   const t = await db.sequelize.transaction();
   let error = false;
@@ -278,7 +302,7 @@ exports.checkOut = async (req, res) => {
       assetId: id,
       authorId: req?.requestingUser?.dataValues?.id,
       type: "Circulation",
-      circulationStatus: "Checked Out",
+      circulationStatus: "Checked out",
       description: `Asset checked out in "${targetAsset.dataValues.condition}" condition`,
     }, { transaction: t })
     .catch(err => {
@@ -291,8 +315,8 @@ exports.checkOut = async (req, res) => {
     if (error) throw new Error();
 
     targetAsset.set({
-      borrowerId: null,
-      dueDate: null,
+      borrowerId: req.body.borrowerId,
+      dueDate: (req.body.dueDate ?? null) !== null ? new Date(req.body.dueDate) : null,
       condition: "Checked-out"
     });
     
@@ -491,7 +515,6 @@ exports.update = async (req, res) => {
 
   if (req.body?.typeId !== undefined) delete req.body.typeId;
   if (req.body?.borrowerId !== undefined) delete req.body.borrowerId;
-  if (req.body?.locationId !== undefined) delete req.body.locationId;
 
   const setData = req.body?.type?.fields !== undefined;
   const typeIncludes = setData || req.body?.templateId !== undefined ? [
@@ -916,5 +939,10 @@ exports.displayAssetIncludes = (assetId, viewableCategories) => [
   {
     model: db.alert,
     as: "alerts",
+    include: {
+      model: db.alertType,
+      as: "type",
+      attributes: ["name"],
+    },
   },
 ];

@@ -16,10 +16,10 @@ module.exports = (app) => {
     router.post("/", [authenticate, getPermissions, getCreatableCategories], asset.create);
 
     // Check in an asset
-    router.post("/", [authenticate, getPermissions, checkCanCirculate], asset.checkIn);
+    router.post("/:id/check-in", [authenticate, getPermissions, checkCanCirculate], asset.checkIn);
 
     // Check out an asset
-    router.post("/", [authenticate, getPermissions, checkCanCirculate], asset.checkOut);
+    router.post("/:id/check-out", [authenticate, getPermissions, checkCanCirculate], asset.checkOut);
   
     // Retrieve all Assets
     router.get("/", [authenticate, getPermissions, getViewableCategories, getPage], asset.findAll);

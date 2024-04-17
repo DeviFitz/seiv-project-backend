@@ -68,7 +68,7 @@ exports.create = async (req, res) => {
       };
       field.assetData.value = field.assetData.value?.trim();
 
-      return field.assetData.value?.length > 0;
+      return (field.assetData.value?.length ?? 0) > 0;
     })?.map(field => field.assetData) ?? [];
     
     // If template can be found, exclude any asset data with matching field ids
@@ -583,10 +583,10 @@ exports.update = async (req, res) => {
           fieldId: field.id,
           assetId: id,
         };
-        field.assetData.value = field.assetData.value.trim();
+        field.assetData.value = field.assetData.value?.trim();
 
         // Make sure the field is not empty
-        const valid = field.assetData.value.length > 0;
+        const valid = (field.assetData.value?.length ?? 0) > 0;
         if (valid) completedFieldIds.add(fieldId);
         return valid;
       }) ?? [];

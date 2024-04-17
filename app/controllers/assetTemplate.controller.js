@@ -85,7 +85,7 @@ exports.findOne = (req, res) => {
     include: {
       model: db.assetField,
       as: "fields",
-      attributes: ["id", "label"],
+      attributes: ["id", "label", "row", "rowSpan", "column", "columnSpan"],
       required: false,
       where: { templateField: true },
       include: {
@@ -208,9 +208,9 @@ exports.update = async (req, res) => {
           templateId: id,
           fieldId: correspondingField.id,
         };
-        field.templateData.value = field.templateData.value.trim();
+        field.templateData.value = field.templateData.value?.trim();
 
-        const valid = field.templateData.value.length > 0;
+        const valid = (field.templateData.value?.length ?? 0) > 0;
         if (!valid && field.templateData.id != undefined) removeData.push(field.templateData.id);
         return valid;
       });

@@ -797,45 +797,38 @@ exports.fullAssetIncludes = (assetId, viewableCategories, templateId) => [
     attributes: ["id", "name", "identifierId"],
     required: true,
     where: { categoryId: viewableCategories ?? [] },
-    include: [
-      {
-        model: db.assetCategory,
-        as: "category",
-        attributes: ["id", "name"],
+    include: {
+      model: db.assetField,
+      as: "fields",
+      attributes: {
+        exclude: ["createdAt", "updatedAt"],
       },
-      {
-        model: db.assetField,
-        as: "fields",
-        attributes: {
-          exclude: ["createdAt", "updatedAt"],
+      include: [
+        {
+          model: db.assetData,
+          as: "assetData",
+          attributes: {
+            exclude: ["assetId", "fieldId", "id"],
+          },
+          required: false,
+          where: {
+            assetId: assetId ?? [],
+          },
+          limit: 1,
         },
-        include: [
-          {
-            model: db.assetData,
-            as: "assetData",
-            attributes: {
-              exclude: ["assetId", "fieldId", "id"],
-            },
-            required: false,
-            where: {
-              assetId: assetId ?? [],
-            },
-            limit: 1,
+        {
+          model: db.templateData,
+          as: "templateData",
+          attributes: {
+            exclude: ["templateId", "fieldId", "id"],
           },
-          {
-            model: db.templateData,
-            as: "templateData",
-            attributes: {
-              exclude: ["templateId", "fieldId", "id"],
-            },
-            required: false,
-            where: {
-              templateId: templateId ?? [],
-            },
+          required: false,
+          where: {
+            templateId: templateId ?? [],
           },
-        ],
-      },
-    ],
+        },
+      ],
+    },
   },
   {
     model: db.assetTemplate,

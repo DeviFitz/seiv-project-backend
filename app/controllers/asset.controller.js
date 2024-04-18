@@ -402,7 +402,7 @@ exports.findOne = async (req, res) => {
       {
         model: db.assetType,
         as: "type",
-        attributes: full ? ["id", "name", "identifierId"] : [],
+        attributes: full ? ["id", "name", "identifierId", "categoryId"] : [],
         required: true,
         where: { categoryId: req.requestingUser.dataValues.viewableCategories },
         include: typeIncludes,

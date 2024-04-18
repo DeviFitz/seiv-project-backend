@@ -396,7 +396,7 @@ exports.findOne = async (req, res) => {
   let error = false;
   const asset = await Asset.findByPk(id, {
     attributes: {
-      exclude: full ? ["templateId", "typeId", "borrowerId", "locationId"] : [],
+      exclude: full ? ["typeId", "borrowerId", "locationId"] : [],
     },
     include: [
       {
@@ -533,7 +533,7 @@ exports.update = async (req, res) => {
           model: db.templateData,
           as: "templateData",
           required: false,
-          where: { templateId: db.Sequelize.col("asset.templateId") },
+          where: req.body?.templateId ? { templateId: req.body?.templateId } : db.Sequelize.where(db.Sequelize.col("type->fields->templateData.templateId"), db.Sequelize.col("asset.templateId")),
         },
       ],
     },
@@ -605,7 +605,7 @@ exports.update = async (req, res) => {
       }
       // If changing the template, ensure that any required fields are filled out at the same time
       const templateFields = [];
-      const template = await db.assetTemplate.findByPk(req.body?.templateId ?? simplifiedTarget.templateId, {
+      const template = await db.assetTemplate.findByPk(req.body?.templateId ?? req.body?.template?.id ?? simplifiedTarget.templateId, {
         attributes: ["assetTypeId"],
         include: {
           model: db.templateData,
@@ -632,8 +632,15 @@ exports.update = async (req, res) => {
         }
 
         template.dataValues.data.forEach(data => {
-          const matchFilled = filledFields.findIndex(field => field.id == data.fieldId);
-          if (matchFilled < 0) return;
+          const matchFilled = filledFields.findIndex(field => field.id == data.dataValues.fieldId);
+          if (matchFilled < 0) {
+            templateFields.push({
+              id: data.dataValues.fieldId,
+              templateData: data.dataValues,
+              assetData: null,
+            });
+            return;
+          };
           
           const removing = filledFields.splice(matchFilled, 1);
           if (removing.assetData.id != undefined) deletingFieldIds.push(removing);
@@ -823,9 +830,7 @@ exports.fullAssetIncludes = (assetId, viewableCategories, templateId) => [
             exclude: ["templateId", "fieldId", "id"],
           },
           required: false,
-          where: {
-            templateId: templateId ?? [],
-          },
+          where: db.Sequelize.where(db.Sequelize.col("type->fields->templateData.templateId"), db.Sequelize.col("asset.templateId")),
         },
       ],
     },

@@ -794,7 +794,7 @@ exports.fullAssetIncludes = (assetId, viewableCategories, templateId) => [
   {
     model: db.assetType,
     as: "type",
-    attributes: ["id", "name", "identifierId"],
+    attributes: ["id", "name", "identifierId", "categoryId"],
     required: true,
     where: { categoryId: viewableCategories ?? [] },
     include: {

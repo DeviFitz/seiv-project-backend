@@ -597,6 +597,7 @@ exports.update = async (req, res) => {
       .filter(field => !!field?.assetData && !filledFields.find(filledField => filledField.id == field.id))
       .map(field => field.id);
       
+      if ((req.body?.templateId ?? null) === null) delete req.body.templateId;
       if (req.body?.templateId !== undefined && isNaN(parseInt(req.body.templateId))) {
         res.status(400).send({
           message: "Error updating asset template! Invalid template id.",
@@ -605,7 +606,7 @@ exports.update = async (req, res) => {
       }
       // If changing the template, ensure that any required fields are filled out at the same time
       const templateFields = [];
-      const template = await db.assetTemplate.findByPk(req.body?.templateId ?? req.body?.template?.id ?? simplifiedTarget.templateId, {
+      const template = req.body.templateId === undefined ? null : await db.assetTemplate.findByPk(req.body?.templateId ?? req.body?.template?.id ?? simplifiedTarget.templateId, {
         attributes: ["assetTypeId"],
         include: {
           model: db.templateData,
@@ -888,11 +889,21 @@ exports.fullAssetIncludes = (assetId, viewableCategories, templateId) => [
     model: db.alert,
     as: "alerts",
     attributes: {
-      exclude: ["assetId", "typeId"],
+      exclude: ["assetId"],
     },
     include: {
       model: db.alertType,
       as: "type",
+      attributes: ["id", "name"],
+    },
+  },
+  {
+    model: db.building,
+    as: "building",
+    attributes: ["id", "abbreviation"],
+    include: {
+      model: db.room,
+      as: "rooms",
       attributes: ["id", "name"],
     },
   },

@@ -101,7 +101,6 @@ exports.update = async (req, res) => {
   
   try
   {
-    let changed = false;
     let error = false;
     const target = await Group.findByPk(id, { transaction: t });
     if (target?.dataValues?.name?.trim() == "Super User") {
@@ -110,26 +109,12 @@ exports.update = async (req, res) => {
       });
       throw new Error();
     }
-
-    target.save({...(req.body ?? {}), transaction: t })
-    .then((num) => {
-      changed = num > 0;
-    })
-    .catch(err => {
-      error = true;
-      res.status(500).send({
-        message: "Error updating group with id=" + id,
-      });
-    });
-    
-    if (error) throw new Error();
     
     if (!!req.body?.permissions)
     {
       const ids = (await denormalizePermissions({ permissions: req.body.permissions }))?.permissions;
-      if (!!ids) await target.setPermissions(ids, { transaction: t })
+	  if (!!ids) await target.setPermissions(ids, { transaction: t })
       .then(data => {
-        changed ||= data?.length > 0;
       })
       .catch(err => {
         error = true;
@@ -140,19 +125,23 @@ exports.update = async (req, res) => {
     
       if (error) throw new Error();
     }
-    
-    if (changed)
-    {
-      await t.commit();
-      return res.send({
-        message: "Group was updated successfully.",
+
+	await target.save({...(req.body ?? {}), transaction: t })
+    .then((num) => {
+    })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error updating group with id=" + id,
       });
-    }
-    
-    res.send({
-      message: `Cannot update group with id=${id}. Maybe group was not found or req.body is empty!`,
     });
-    throw new Error();
+    
+    if (error) throw new Error();
+    
+	await t.commit();
+	return res.send({
+	  message: "Group was updated successfully.",
+	});
   }
   catch
   {

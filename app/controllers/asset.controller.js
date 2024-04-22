@@ -280,12 +280,17 @@ exports.checkOut = async (req, res) => {
   if (isNaN(req.body.borrowerId)) return res.status(400).send({
     message: "Invalid borrower id!",
   });
-  if (isNaN(new Date(req.body.dueDate !== null ? "2000-01-01" : null))) return res.status(400).send({
+  if (isNaN(new Date((req.body.dueDate ?? null) === null ? "2000-01-01" : req.body.dueDate))) return res.status(400).send({
     message: "Invalid due date!",
   });
 
   const t = await db.sequelize.transaction();
   let error = false;
+
+  // const parsedDate = new Date(req.body.dueDate);
+  // req.body.dueDate = isNaN(parsedDate) ? null : parsedDate;
+
+  req.body.dueDate ??= null;
 
   try {
     const targetAsset = await Asset.findByPk(id);
@@ -396,13 +401,13 @@ exports.findOne = async (req, res) => {
   let error = false;
   const asset = await Asset.findByPk(id, {
     attributes: {
-      exclude: full ? ["typeId", "borrowerId", "locationId"] : [],
+      exclude: full ? ["typeId"] : [],
     },
     include: [
       {
         model: db.assetType,
         as: "type",
-        attributes: full ? ["id", "name", "identifierId", "categoryId"] : [],
+        attributes: full ? ["id", "name", "identifierId", "categoryId", "circulatable"] : [],
         required: true,
         where: { categoryId: req.requestingUser.dataValues.viewableCategories },
         include: typeIncludes,
@@ -802,7 +807,7 @@ exports.fullAssetIncludes = (assetId, viewableCategories, templateId) => [
   {
     model: db.assetType,
     as: "type",
-    attributes: ["id", "name", "identifierId", "categoryId"],
+    attributes: ["id", "name", "identifierId", "categoryId", "circulatable"],
     required: true,
     where: { categoryId: viewableCategories ?? [] },
     include: {

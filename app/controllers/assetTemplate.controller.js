@@ -43,14 +43,23 @@ exports.create = async (req, res) => {
 
 // Retrieve all AssetTemplates from the database.
 exports.findAll = (req, res) => {
+  const raw = req?.query?.raw !== undefined;
+
   AssetTemplate.findAll({
     ...req.paginator,
     include: {
       model: db.assetType,
       as: "assetType",
-      attributes: ["name"],
+      attributes: raw ? [] : ["name"],
       required: true,
       where: { categoryId: req.requestingUser.dataValues.viewableCategories },
+      include: raw ? [] : [
+        {
+          model: db.assetCategory,
+          as: "category",
+          attributes: ["name"],
+        },
+      ],
     },
   })
   .then((data) => {
@@ -76,7 +85,7 @@ exports.findOne = (req, res) => {
     include: {
       model: db.assetField,
       as: "fields",
-      attributes: ["id", "label"],
+      attributes: ["id", "label", "row", "rowSpan", "column", "columnSpan"],
       required: false,
       where: { templateField: true },
       include: {
@@ -199,9 +208,9 @@ exports.update = async (req, res) => {
           templateId: id,
           fieldId: correspondingField.id,
         };
-        field.templateData.value = field.templateData.value.trim();
+        field.templateData.value = field.templateData.value?.trim();
 
-        const valid = field.templateData.value.length > 0;
+        const valid = (field.templateData.value?.length ?? 0) > 0;
         if (!valid && field.templateData.id != undefined) removeData.push(field.templateData.id);
         return valid;
       });

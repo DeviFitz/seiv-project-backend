@@ -81,6 +81,10 @@ const determineDefaults = async () => {
         description: "Gives permission to change the specific permissions of users in lower-priority groups.",
       },
       {
+        name: "Check In and Check Out Assets",
+        description: "Gives permission to check in and check out assets to people.",
+      },
+      {
         name: "Create Alert Type",
         description: "Gives permission to create alert types.",
       },

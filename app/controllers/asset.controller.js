@@ -68,7 +68,7 @@ exports.create = async (req, res) => {
       };
       field.assetData.value = field.assetData.value?.trim();
 
-      return field.assetData.value?.length > 0;
+      return (field.assetData.value?.length ?? 0) > 0;
     })?.map(field => field.assetData) ?? [];
     
     // If template can be found, exclude any asset data with matching field ids
@@ -199,17 +199,161 @@ exports.create = async (req, res) => {
   }
 };
 
+// Check in an asset
+exports.checkIn = async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).send({
+    message: "Invalid asset id!",
+  });
+
+  const newCondition = req.body.condition !== undefined;
+  const t = await db.sequelize.transaction();
+  let error = false;
+
+  try {
+    const targetAsset = await Asset.findByPk(id);
+
+    // Use the specified condition if there is one
+    // If no condition is specified, try and find the most recent log with a condition
+    // If no logs with a condition can be found, assume the asset is new and is thus in the "Like New" condition
+    const condition = newCondition ? req.body.condition : ((await db.log.findOne({
+      where: {
+        assetId: id,
+        condition: {
+          [db.Sequelize.Op.not]: null,
+          [db.Sequelize.Op.ne]: '',
+        },
+      },
+      order: [
+        ['date', 'DESC'],
+      ],
+    }))?.dataValues?.condition ?? "Like New");
+
+    await db.log.create({
+      date: new Date(),
+      assetId: id,
+      authorId: req?.requestingUser?.dataValues?.id,
+      type: "Circulation",
+      circulationStatus: "Checked in",
+      description: `Returned asset in condition: "${condition}"`,
+      personId: targetAsset.dataValues.borrowerId,
+    }, { transaction: t })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error creating log to check in asset!"
+      });
+    });
+
+    if (error) throw new Error();
+
+    targetAsset.set({
+      borrowerId: null,
+      dueDate: null,
+      condition,
+    });
+    
+    await targetAsset.save({ transaction: t })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error updating asset circulation status!",
+      });
+    });
+
+    if (error) throw new Error();
+
+    await t.commit();
+    res.send({ message: "Successfully checked in asset!" });
+  }
+  catch {
+    t.rollback();
+  }
+};
+
+// Check out an asset
+exports.checkOut = async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).send({
+    message: "Invalid asset id!",
+  });
+  if (isNaN(req.body.borrowerId)) return res.status(400).send({
+    message: "Invalid borrower id!",
+  });
+  if (isNaN(new Date((req.body.dueDate ?? null) === null ? "2000-01-01" : req.body.dueDate))) return res.status(400).send({
+    message: "Invalid due date!",
+  });
+
+  const t = await db.sequelize.transaction();
+  let error = false;
+
+  // const parsedDate = new Date(req.body.dueDate);
+  // req.body.dueDate = isNaN(parsedDate) ? null : parsedDate;
+
+  req.body.dueDate ??= null;
+
+  try {
+    const targetAsset = await Asset.findByPk(id);
+
+    if (!targetAsset) {
+      res.status(404).send({
+        message: "No asset found with id=" + id,
+      });
+      throw new Error();
+    }
+
+    await db.log.create({
+      date: new Date(),
+      assetId: id,
+      authorId: req?.requestingUser?.dataValues?.id,
+      type: "Circulation",
+      circulationStatus: "Checked out",
+      description: `Asset checked out in "${targetAsset.dataValues.condition}" condition`,
+    }, { transaction: t })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error creating log to check in asset!"
+      });
+    });
+
+    if (error) throw new Error();
+
+    targetAsset.set({
+      borrowerId: req.body.borrowerId,
+      dueDate: (req.body.dueDate ?? null) !== null ? new Date(req.body.dueDate) : null,
+      condition: "Checked-out"
+    });
+    
+    await targetAsset.save({ transaction: t })
+    .catch(err => {
+      error = true;
+      res.status(500).send({
+        message: "Error updating asset circulation status!",
+      });
+    });
+
+    if (error) throw new Error();
+
+    await t.commit();
+    res.send({ message: "Successfully checked out asset!" });
+  }
+  catch {
+    t.rollback();
+  }
+};
+
 // Retrieve all Assets from the database.
 exports.findAll = (req, res) => {
-  const raw = req.query?.raw != undefined;
+  const raw = req.query?.raw !== undefined;
   const typeIncludes = !raw ? this.displayAssetIncludes(null, req.requestingUser.dataValues.viewableCategories)[0].include : [];
   const assetIncludes = !raw ? [
-    ...this.displayAssetIncludes(null, null).slice(1),
+    ...this.displayAssetIncludes(null, req.requestingUser.dataValues.viewableCategories).slice(1),
   ] : [];
 
   Asset.findAll({
     ...req.paginator,
-    attributes: raw ? { exclude: [] } : ["id"],
+    attributes: raw ? { exclude: [] } : ["id", "dueDate"],
     include: [
       {
         model: db.assetType,
@@ -257,13 +401,13 @@ exports.findOne = async (req, res) => {
   let error = false;
   const asset = await Asset.findByPk(id, {
     attributes: {
-      exclude: full ? ["templateId", "typeId", "borrowerId", "locationId"] : [],
+      exclude: full ? ["typeId"] : [],
     },
     include: [
       {
         model: db.assetType,
         as: "type",
-        attributes: full ? ["id", "name", "identifierId"] : [],
+        attributes: full ? ["id", "name", "identifierId", "categoryId", "circulatable"] : [],
         required: true,
         where: { categoryId: req.requestingUser.dataValues.viewableCategories },
         include: typeIncludes,
@@ -375,6 +519,7 @@ exports.update = async (req, res) => {
   });
 
   if (req.body?.typeId !== undefined) delete req.body.typeId;
+  if (req.body?.borrowerId !== undefined) delete req.body.borrowerId;
 
   const setData = req.body?.type?.fields !== undefined;
   const typeIncludes = setData || req.body?.templateId !== undefined ? [
@@ -393,7 +538,7 @@ exports.update = async (req, res) => {
           model: db.templateData,
           as: "templateData",
           required: false,
-          where: { templateId: db.Sequelize.col("asset.templateId") },
+          where: req.body?.templateId ? { templateId: req.body?.templateId } : db.Sequelize.where(db.Sequelize.col("type->fields->templateData.templateId"), db.Sequelize.col("asset.templateId")),
         },
       ],
     },
@@ -443,10 +588,10 @@ exports.update = async (req, res) => {
           fieldId: field.id,
           assetId: id,
         };
-        field.assetData.value = field.assetData.value.trim();
+        field.assetData.value = field.assetData.value?.trim();
 
         // Make sure the field is not empty
-        const valid = field.assetData.value.length > 0;
+        const valid = (field.assetData.value?.length ?? 0) > 0;
         if (valid) completedFieldIds.add(fieldId);
         return valid;
       }) ?? [];
@@ -457,6 +602,7 @@ exports.update = async (req, res) => {
       .filter(field => !!field?.assetData && !filledFields.find(filledField => filledField.id == field.id))
       .map(field => field.id);
       
+      if ((req.body?.templateId ?? null) === null) delete req.body.templateId;
       if (req.body?.templateId !== undefined && isNaN(parseInt(req.body.templateId))) {
         res.status(400).send({
           message: "Error updating asset template! Invalid template id.",
@@ -465,7 +611,7 @@ exports.update = async (req, res) => {
       }
       // If changing the template, ensure that any required fields are filled out at the same time
       const templateFields = [];
-      const template = await db.assetTemplate.findByPk(req.body?.templateId ?? simplifiedTarget.templateId, {
+      const template = req.body.templateId === undefined ? null : await db.assetTemplate.findByPk(req.body?.templateId ?? req.body?.template?.id ?? simplifiedTarget.templateId, {
         attributes: ["assetTypeId"],
         include: {
           model: db.templateData,
@@ -492,8 +638,15 @@ exports.update = async (req, res) => {
         }
 
         template.dataValues.data.forEach(data => {
-          const matchFilled = filledFields.findIndex(field => field.id == data.fieldId);
-          if (matchFilled < 0) return;
+          const matchFilled = filledFields.findIndex(field => field.id == data.dataValues.fieldId);
+          if (matchFilled < 0) {
+            templateFields.push({
+              id: data.dataValues.fieldId,
+              templateData: data.dataValues,
+              assetData: null,
+            });
+            return;
+          };
           
           const removing = filledFields.splice(matchFilled, 1);
           if (removing.assetData.id != undefined) deletingFieldIds.push(removing);
@@ -654,7 +807,7 @@ exports.fullAssetIncludes = (assetId, viewableCategories, templateId) => [
   {
     model: db.assetType,
     as: "type",
-    attributes: ["id", "name", "identifierId"],
+    attributes: ["id", "name", "identifierId", "categoryId", "circulatable"],
     required: true,
     where: { categoryId: viewableCategories ?? [] },
     include: {
@@ -683,9 +836,7 @@ exports.fullAssetIncludes = (assetId, viewableCategories, templateId) => [
             exclude: ["templateId", "fieldId", "id"],
           },
           required: false,
-          where: {
-            templateId: templateId ?? [],
-          },
+          where: db.Sequelize.where(db.Sequelize.col("type->fields->templateData.templateId"), db.Sequelize.col("asset.templateId")),
         },
       ],
     },
@@ -743,11 +894,21 @@ exports.fullAssetIncludes = (assetId, viewableCategories, templateId) => [
     model: db.alert,
     as: "alerts",
     attributes: {
-      exclude: ["assetId", "typeId"],
+      exclude: ["assetId"],
     },
     include: {
       model: db.alertType,
       as: "type",
+      attributes: ["id", "name"],
+    },
+  },
+  {
+    model: db.building,
+    as: "building",
+    attributes: ["id", "abbreviation"],
+    include: {
+      model: db.room,
+      as: "rooms",
       attributes: ["id", "name"],
     },
   },
@@ -776,10 +937,7 @@ exports.displayAssetIncludes = (assetId, viewableCategories) => [
           as: "assetData",
           attributes: ["value"],
           required: false,
-          where: {
-            assetId: assetId ?? db.Sequelize.col("asset.id"),
-            //db.Sequelize.where(db.Sequelize.col("type->identifier->assetData.assetId"), db.Sequelize.col("asset.id")),
-          }
+          where: (assetId ?? null) !== null ? { assetId } : db.Sequelize.where(db.Sequelize.col("type->identifier->assetData.assetId"), db.Sequelize.col("asset.id")),
         },
       },
     ],
@@ -793,6 +951,11 @@ exports.displayAssetIncludes = (assetId, viewableCategories) => [
       as: "building",
       attributes: ["abbreviation"],
     },
+  },
+  {
+    model: db.person,
+    as: "borrower",
+    attributes: ["id", "fName", "lName"],
   },
   {
     model: db.alert,

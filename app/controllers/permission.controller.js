@@ -89,6 +89,7 @@ const normalize = (permissions, sort = true) => {
       name: permission.name,
       clearance: "full",
       report: false,
+	  categoryId: null,
     });
 
     const normalizedName = `${permission.name.match(/"[\s\S]*"/i)}`.replaceAll("\"", "");
@@ -106,6 +107,7 @@ const normalize = (permissions, sort = true) => {
       name: normalizedName,
       clearance,
       report,
+	  categoryId: permission.categoryId,
     });
 
     if (permissionTiers[permissionGroup.clearance] < permissionTiers[clearance]) permissionGroup.clearance = clearance;
@@ -144,8 +146,16 @@ const denormalize = (permissionList, allPermissions) => {
   const denormalizedPerms = [];
 
   permissionList.forEach(permission => {
+	permission.clearance = permission.clearance?.trim()?.toLowerCase() ?? "none";
+	if (permission.clearance == "none") return;
+
     let search = allPermissions.find(perm => perm.name.toLowerCase() === permission.name.toLowerCase());
-    if (!!search) return denormalizedPerms.push(search);
+	
+    if (!!search)
+	{
+		if (permission?.clearance == "full") denormalizedPerms.push(search);
+		return;
+	}
     
     search = allPermissions.filter(perm => perm.name.toLowerCase().includes(permission.name.toLowerCase()) && !!perm.categoryId);
     if (!!search)

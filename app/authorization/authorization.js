@@ -165,7 +165,7 @@ const PermTypes = {
 /**Helper function to see if the name of a permission matches a regex
  * 
  * @param req The req object which contains the user and their permissions
- * @param name The regex-like string representing the name of the terget of the permissions
+ * @param name The regex-like string representing the name of the target of the permissions
  * @param permType The type of permission to check for
 */
 const checkHasPermission = (req, name, permType) => {
@@ -422,6 +422,12 @@ const checkRemoveUser = async (req, res, next) => {
 };
 //#endregion
 
+const checkCanCirculate = async (req, res, next) => {
+  if (checkHasPermission(req, "Asset", "Check In")) next();
+  else res.status(401).send({
+    message: "Unauthorized! User does not have permission to check in or check out assets.",
+  });
+};
 
 
 // Load up object to export
@@ -460,5 +466,6 @@ module.exports = {
   checkRemoveUser,
   getPage,
   checkHasPermission,
+  checkCanCirculate,
   PermTypes,
 };

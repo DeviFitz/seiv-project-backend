@@ -52,8 +52,17 @@ exports.create = async (req, res) => {
 
 // Retrieve all Rooms from the database.
 exports.findAll = (req, res) => {
+  const includes = req.query.raw !== undefined ? [] : [
+    {
+      model: db.building,
+      as: "building",
+      attributes: ["id", "abbreviation"],
+    }
+  ];
+
   Room.findAll({
     ...req.paginator,
+    include: includes,
   })
   .then((data) => {
     res.send(data);

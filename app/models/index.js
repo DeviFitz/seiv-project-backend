@@ -119,6 +119,18 @@ db.asset.belongsTo(
     hooks: true,
   }
 );
+db.asset.hasOne(
+  db.building,
+  { 
+    as: "building",
+    foreignKey: {
+      name: "assetId",
+      allowNull: false,
+    },
+    onDelete: "CASCADE",
+    hooks: true,
+  }
+);
 db.asset.hasMany(
   db.alert,
   { 
@@ -295,12 +307,7 @@ db.building.belongsTo(
   db.asset,
   { 
     as: "asset",
-    foreignKey: {
-      name: "assetId",
-      allowNull: false,
-    },
-    onDelete: "CASCADE",
-    hooks: true,
+    foreignKey: "assetId",
   }
 );
 db.building.hasMany(

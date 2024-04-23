@@ -196,12 +196,9 @@ exports.update = async (req, res) => {
   
   if (params.groupId !== undefined && params.groupId != target.dataValues.groupId)
   {
-    console.log("Trying to assign group!")
     if (editPerms.superAssign || (editPerms.assign && subEdit))
     {
       const group = (await db.group.findByPk(params.groupId, { attributes: ['priority', 'expiration'] }))?.get({ plain: true }) ?? null;
-      console.log(group?.priority)
-      console.log(reqPrio)
 
       if ((group?.priority ?? reqPrio) >= (reqPrio ?? undefined))
       {

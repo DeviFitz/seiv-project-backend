@@ -80,7 +80,7 @@ exports.findOne = async (req, res) => {
         {
           model: db.user,
           as: "user",
-          attributes: ["groupExpiration", "blocked"],
+          attributes: ["id", "groupExpiration", "blocked"],
           include: [
             {
               model: db.group,

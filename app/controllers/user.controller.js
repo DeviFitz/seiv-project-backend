@@ -170,7 +170,7 @@ exports.update = async (req, res) => {
   };
   
   // Check to make sure that user can be edited based on their priority and the requestor's permissions
-  if (params.blocked != undefined && params.blocked != null && params.blocked != target.dataValues.blocked)
+  if (params.blocked !== undefined && params.blocked != null && params.blocked != target.dataValues.blocked)
   {
     if (editPerms.superBlock || (editPerms.block && subEdit))
       target.blocked = params.blocked;
@@ -182,7 +182,7 @@ exports.update = async (req, res) => {
     });
   }
 
-  if (params.groupExpiration != undefined && params.groupExpiration != target.dataValues.groupExpiration)
+  if (params.groupExpiration !== undefined && params.groupExpiration != target.dataValues.groupExpiration)
   {
     if (editPerms.superAssign || (editPerms.assign && subEdit))
       target.groupExpiration = params.groupExpiration;
@@ -194,18 +194,21 @@ exports.update = async (req, res) => {
     });
   }
   
-  if (params.groupId != undefined && params.groupId != target.dataValues.groupId)
+  if (params.groupId !== undefined && params.groupId != target.dataValues.groupId)
   {
+    console.log("Trying to assign group!")
     if (editPerms.superAssign || (editPerms.assign && subEdit))
     {
-      const group = (await db.group.findByPk(target.groupId, { attributes: ['priority', 'expiration'] }))?.get({ plain: true });
+      const group = (await db.group.findByPk(params.groupId, { attributes: ['priority', 'expiration'] }))?.get({ plain: true }) ?? null;
+      console.log(group?.priority)
+      console.log(reqPrio)
 
-      if (!!group && group.priority <= params.groupId)
+      if ((group?.priority ?? reqPrio) >= (reqPrio ?? undefined))
       {
         target.groupId = params.groupId;
-        if (params.groupExpiration != undefined) target.groupExpiration = group.expiration;
+        if (params.groupExpiration !== undefined) target.groupExpiration = group.expiration;
       }
-      else return res.send({
+      else return res.status(401).send({
         message: "User can only assign other users to lower- or equal-priority groups.",
       });
     }
